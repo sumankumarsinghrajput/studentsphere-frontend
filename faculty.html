@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Dashboard — Student Sphere</title>
+  <link rel="icon" type="image/x-icon" href="css/logo.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
+    <span class="nav-brand-name">Student <em>Sphere</em></span>
+  </a>
+  <div class="nav-links"></div>
+  <div class="nav-right" id="nav-right"></div>
+  <button class="hamburger" id="sb-toggle"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="pt-nav">
+  <div class="dash-layout">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-user">
+        <div class="sb-avatar" id="sb-avatar">?</div>
+        <div class="sb-name" id="sb-name">Loading…</div>
+        <div class="sb-email" id="sb-email"></div>
+        <span id="sb-badge" class="role-tag role-faculty" style="margin-top:6px;display:inline-block">faculty</span>
+      </div>
+      <div class="sb-section-label">Navigation</div>
+      <nav class="sb-nav" id="sb-nav"></nav>
+      <div class="sb-bottom">
+        <button class="sb-item" onclick="logout()" style="color:var(--rose)">
+          <span class="sb-ico">🚪</span> Logout
+        </button>
+      </div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="section active" id="sec-overview"></div>
+      <div class="section"        id="sec-students"></div>
+      <div class="section"        id="sec-attendance"></div>
+      <div class="section"        id="sec-marks"></div>
+      <div class="section"        id="sec-notes"></div>
+      <div class="section"        id="sec-assignments"></div>
+      <div class="section"        id="sec-lab"></div>
+    </main>
+
+  </div>
+</div>
+
+<div class="egg-overlay" id="egg-overlay">
+  <div class="egg-box">
+    <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
+    <h2>Student <span>Sphere</span></h2>
+    <p>Designed &amp; Developed by</p>
+    <div class="egg-dev">Suman Kumar Singh</div>
+    <button class="btn btn-primary" id="egg-close">Close</button>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/faculty.js"></script>
+<script>document.addEventListener('DOMContentLoaded', initFaculty);</script>
+</body>
+</html>

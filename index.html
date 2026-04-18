@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Sphere — Academic Management System</title>
+  <link rel="icon" type="image/x-icon" href="css/logo.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════ NAVBAR ═══════════════════ -->
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
+    <span class="nav-brand-name">Student <em>Sphere</em></span>
+  </a>
+
+  <div class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="about-dev.html">About</a>
+  </div>
+
+  <div class="nav-right" id="nav-right">
+    <a href="login.html" class="btn btn-ghost btn-sm" id="nav-login">Sign In</a>
+    <a href="register.html" class="btn btn-primary btn-sm" id="nav-reg">Get Started</a>
+    <a href="#" class="btn btn-primary btn-sm" id="dash-btn" style="display:none">Dashboard →</a>
+  </div>
+
+  <button class="hamburger" id="ham-btn"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="nav-drawer" id="nav-drawer">
+  <a href="index.html">Home</a>
+  <a href="about-dev.html">About</a>
+  <a href="login.html">Sign In</a>
+  <a href="register.html">Get Started</a>
+</div>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<div class="pt-nav">
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-dots"></div>
+    <div class="container">
+      <div class="hero-inner">
+
+        <!-- Left -->
+        <div class="hero-left">
+          <div class="hero-chip">
+            <span class="chip-dot"></span>
+            Academic ERP &nbsp;·&nbsp; v2.0
+          </div>
+
+          <h1 class="hero-title">
+            Manage Your<br>
+            Campus Life<br>
+            <span class="hl">Effortlessly.</span>
+          </h1>
+
+          <p class="hero-desc">
+            Student Sphere is a complete academic management platform connecting students, faculty, and administrators. Track attendance, marks, assignments, notes and lab reports — all in one beautiful dashboard.
+          </p>
+
+          <div class="hero-btns">
+            <a href="register.html" class="btn btn-primary btn-lg">Get Started Free →</a>
+            <a href="login.html"    class="btn btn-outline btn-lg">Sign In</a>
+          </div>
+
+          <div class="hero-stats">
+            <div>
+              <div class="hstat-val">3</div>
+              <div class="hstat-lbl">User Roles</div>
+            </div>
+            <div>
+              <div class="hstat-val">10+</div>
+              <div class="hstat-lbl">Features</div>
+            </div>
+            <div>
+              <div class="hstat-val">100%</div>
+              <div class="hstat-lbl">Vanilla JS</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right -->
+        <div class="hero-right">
+          <div class="hcard">
+            <div class="hcard-head">
+              <div class="hcard-icon ic-blue">👨‍🎓</div>
+              <div class="hcard-title">Student</div>
+            </div>
+            <div class="hcard-desc">View attendance, marks, study notes, assignments, and lab reports — everything in one place.</div>
+            <div class="hcard-tags">
+              <span class="htag">Attendance</span>
+              <span class="htag">Marks</span>
+              <span class="htag">Notes</span>
+              <span class="htag">Assignments</span>
+            </div>
+          </div>
+
+          <div class="hcard">
+            <div class="hcard-head">
+              <div class="hcard-icon ic-violet">👩‍🏫</div>
+              <div class="hcard-title">Faculty</div>
+            </div>
+            <div class="hcard-desc">Manage student data, update attendance and marks, upload study materials with ease.</div>
+            <div class="hcard-tags">
+              <span class="htag">Update Records</span>
+              <span class="htag">Upload Materials</span>
+            </div>
+          </div>
+
+          <div class="hcard">
+            <div class="hcard-head">
+              <div class="hcard-icon ic-green">🛡️</div>
+              <div class="hcard-title">Administrator</div>
+            </div>
+            <div class="hcard-desc">Full system control — manage all users, view analytics, add or delete accounts.</div>
+            <div class="hcard-tags">
+              <span class="htag">User Management</span>
+              <span class="htag">Analytics</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2024 <span>Student Sphere</span> · Designed & Developed by Student Sphere Team</p>
+  </footer>
+</div>
+
+<!-- Easter Egg -->
+<div class="egg-overlay" id="egg-overlay">
+  <div class="egg-box">
+    <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
+    <h2>Student <span>Sphere</span></h2>
+    <p>Designed &amp; Developed by</p>
+    <div class="egg-dev">Suman Kumar Singh</div>
+    <button class="btn btn-primary" id="egg-close">Close</button>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

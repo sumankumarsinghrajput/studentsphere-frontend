@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us — Student Sphere</title>
+  <link rel="icon" type="image/x-icon" href="css/logo.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
+    <span class="nav-brand-name">Student <em>Sphere</em></span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="about-dev.html" class="active">About</a>
+  </div>
+  <div class="nav-right">
+    <a href="login.html" class="btn btn-ghost btn-sm">Sign In</a>
+    <a href="register.html" class="btn btn-primary btn-sm">Get Started</a>
+  </div>
+  <button class="hamburger" id="ham-btn"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="nav-drawer" id="nav-drawer">
+  <a href="index.html">Home</a>
+  <a href="login.html">Sign In</a>
+  <a href="register.html">Get Started</a>
+</div>
+
+<div class="pt-nav">
+  <div class="about-wrap">
+    <div class="about-card">
+
+      <img src="css/logo.png" alt="Student Sphere Logo" class="about-logo">
+      <h1>Student Sphere Team</h1>
+      <div class="about-role">Group Project · B.Tech Final Year</div>
+
+      <p class="about-desc">
+        Student Sphere is an academic management system developed by a team of B.Tech students as part of a final-year project. 
+        It is designed to manage students, faculty, attendance, marks, and study resources efficiently using a clean and responsive interface built with HTML, CSS, and JavaScript.
+      </p>
+
+      <!-- TEAM MEMBERS -->
+      <div class="highlight-box">
+        <h4>👨‍💻 Meet the Team</h4>
+
+        <div class="hl-item"><span class="hl-check">✓</span> Suman Kumar Singh — Full Stack Developer</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Abhinav Anand — UI/UX Designer</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Aman Kumar Vikarn — Backend Developer</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Sachin Mandal — Database Management</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Suman Das — Testing & Support</div>
+      </div>
+
+      <div class="tag-cloud">
+        <span class="tag">HTML5</span>
+        <span class="tag">CSS3</span>
+        <span class="tag">Vanilla JavaScript</span>
+        <span class="tag">localStorage API</span>
+        <span class="tag">Role-based Auth</span>
+        <span class="tag">Responsive Design</span>
+        <span class="tag">UI / UX</span>
+        <span class="tag">Academic ERP</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;text-align:center">
+        <div class="stat-box">
+          <div class="stat-val">3</div>
+          <div class="stat-lbl">User Roles</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">14</div>
+          <div class="stat-lbl">Source Files</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">0</div>
+          <div class="stat-lbl">Frameworks Used</div>
+        </div>
+      </div>
+
+      <div class="highlight-box">
+        <h4>🚀 Project Highlights</h4>
+        <div class="hl-item"><span class="hl-check">✓</span> Role-based authentication — Student, Faculty & Admin</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Persistent data using browser localStorage</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Faculty can manage attendance, marks & study materials</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Admin has full control over user management</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Hidden easter egg feature</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Fully responsive design</div>
+        <div class="hl-item"><span class="hl-check">✓</span> Built using pure HTML, CSS, JavaScript</div>
+      </div>
+
+      <div style="display:flex;gap:.875rem;justify-content:center;flex-wrap:wrap">
+        <a href="index.html" class="btn btn-outline">← Back to Home</a>
+        <a href="register.html" class="btn btn-primary">Try the App →</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2024 <span>Student Sphere</span> · Designed & Developed by Student Sphere Team</p>
+  </footer>
+</div>
+
+<div class="egg-overlay" id="egg-overlay">
+  <div class="egg-box">
+    <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
+    <h2>Student <span>Sphere</span></h2>
+    <p>Designed & Developed by</p>
+    <div class="egg-dev">Suman Kumar Singh</div>
+    <button class="btn btn-primary" id="egg-close">Close</button>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    seedAdmin();
+    initHam();
+    initEasterEgg();
+  });
+</script>
+
+</body>
+</html>
