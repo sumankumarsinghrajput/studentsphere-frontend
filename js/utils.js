@@ -83,10 +83,11 @@ function showAlert(id, msg, type = 'error') {
   setTimeout(() => { if (el) el.innerHTML = ''; }, 4500);
 }
 
-/* ── Auth guard ── */
+/* ── Auth guard — checks both localStorage and token ── */
 function requireRole(role) {
   const u = SS.get('ss_current_user');
-  if (!u) { window.location.href = 'login.html'; return null; }
+  const token = sessionStorage.getItem('ss_token');
+  if (!u || !token) { window.location.href = 'login.html'; return null; }
   if (role && u.role !== role) { window.location.href = 'login.html'; return null; }
   return u;
 }

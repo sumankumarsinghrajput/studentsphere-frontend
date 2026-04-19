@@ -1,367 +1,319 @@
 // ────────────────────────────────────────────
-// admin.js — Admin dashboard
+// admin.js — Admin dashboard (API version)
 // ────────────────────────────────────────────
 
-function initAdmin() {
+async function initAdmin() {
   const user = requireRole('admin');
   if (!user) return;
+
   renderNavUser(user);
   buildSidebar('admin', user);
-  renderAdminSections(user);
   switchSec('overview');
   initSbNav();
   initHam();
   initEasterEgg();
+
+  await renderAdminSections(user);
 }
 
-function renderAdminSections(user) {
-  const allUsers   = SS.get('ss_users') || [];
-  const students   = allUsers.filter(u=>u.role==='student');
-  const faculty    = allUsers.filter(u=>u.role==='faculty');
-  const att        = SS.get('ss_attendance')  || {};
-  const marks      = SS.get('ss_marks')       || {};
-  const notes      = SS.get('ss_notes')       || {};
-  const asgn       = SS.get('ss_assignments') || {};
-  const lab        = SS.get('ss_lab')         || {};
-  const totalNotes = Object.values(notes).reduce((a,v)=>a+v.length,0);
-  const totalAsgn  = Object.values(asgn).reduce((a,v)=>a+v.length,0);
-  const totalLab   = Object.values(lab).reduce((a,v)=>a+v.length,0);
+async function renderAdminSections(user) {
+  // Load all users from API
+  const allUsers = await apiGetUsers();
+  const students = allUsers.filter(u => u.role === 'student');
+  const faculty  = allUsers.filter(u => u.role === 'faculty');
 
-  // Group students by semester
-  const semGroups = {};
-  SEMESTERS.forEach(s=>{ semGroups[s] = students.filter(u=>u.semester===s); });
+  renderAdminOverview(user, allUsers, students, faculty);
+  renderAdminStudents(students);
+  renderAdminFaculty(faculty);
+  renderAdminAllUsers(allUsers);
+  renderAdminAddUser();
+}
 
-  // ── Overview ──
+// ── Overview ──
+function renderAdminOverview(user, allUsers, students, faculty) {
+  const semesters = [...new Set(students.map(s => s.semester).filter(Boolean))];
+
   document.getElementById('sec-overview').innerHTML = `
-    <div class="page-head"><div class="page-title">Admin Dashboard</div><div class="page-sub">Full system management &amp; analytics</div></div>
+    <div class="page-head">
+      <div class="page-title">Welcome, ${esc(user.name.split(' ')[0])} 👋</div>
+      <div class="page-sub">Admin Dashboard — Full system management & analytics</div>
+    </div>
     <div class="stat-row">
-      <div class="stat-box"><div class="stat-val">${allUsers.length}</div><div class="stat-lbl">Total Users</div><span class="stat-bg-icon">👥</span></div>
-      <div class="stat-box"><div class="stat-val">${students.length}</div><div class="stat-lbl">Students</div><span class="stat-bg-icon">👨‍🎓</span></div>
-      <div class="stat-box"><div class="stat-val">${faculty.length}</div><div class="stat-lbl">Faculty</div><span class="stat-bg-icon">👩‍🏫</span></div>
-      <div class="stat-box"><div class="stat-val">${SEMESTERS.filter(s=>semGroups[s].length>0).length}</div><div class="stat-lbl">Active Semesters</div><span class="stat-bg-icon">📚</span></div>
+      <div class="stat-box">
+        <div class="stat-val">${allUsers.length}</div>
+        <div class="stat-lbl">Total Users</div>
+        <span class="stat-bg-icon">👥</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${students.length}</div>
+        <div class="stat-lbl">Students</div>
+        <span class="stat-bg-icon">👨‍🎓</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${faculty.length}</div>
+        <div class="stat-lbl">Faculty</div>
+        <span class="stat-bg-icon">👩‍🏫</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${semesters.length}</div>
+        <div class="stat-lbl">Active Semesters</div>
+        <span class="stat-bg-icon">📚</span>
+      </div>
     </div>
     <div class="grid-2">
       <div class="card">
-        <div class="card-title">📊 Content Summary</div>
-        <div class="info-list">
-          <div class="info-row"><span class="info-key">Notes Uploaded</span><span class="info-val">${totalNotes}</span></div>
-          <div class="info-row"><span class="info-key">Assignments</span><span class="info-val">${totalAsgn}</span></div>
-          <div class="info-row"><span class="info-key">Lab Reports</span><span class="info-val">${totalLab}</span></div>
-          <div class="info-row"><span class="info-key">Marks Updated</span><span class="info-val">${Object.keys(marks).length}</span></div>
-          <div class="info-row"><span class="info-key">Attendance Updated</span><span class="info-val">${Object.keys(att).length}</span></div>
+        <div class="card-title">👥 Recent Users</div>
+        <div class="item-list">
+          ${allUsers.slice(0,5).map(u => `
+            <div class="item-row">
+              <div class="item-row-left">
+                <div class="nav-avatar" style="width:32px;height:32px;font-size:.75rem;flex-shrink:0">
+                  ${initials(u.name)}
+                </div>
+                <div>
+                  <div class="item-row-text">${esc(u.name)}</div>
+                  <div style="font-size:.72rem;color:var(--muted)">${esc(u.email)}</div>
+                </div>
+              </div>
+              <span class="role-tag role-${u.role}">${u.role}</span>
+            </div>`).join('')}
         </div>
       </div>
       <div class="card">
         <div class="card-title">📚 Students per Semester</div>
         <div class="info-list">
-          ${SEMESTERS.map(s=>
-            '<div class="info-row">' +
-              '<span class="info-key">' + s + '</span>' +
-              '<span class="info-val"><span class="badge ' + (semGroups[s].length ? 'badge-blue' : 'badge-gray') + '">' +
-                semGroups[s].length + ' student' + (semGroups[s].length!==1?'s':'') +
-              '</span></span>' +
-            '</div>'
-          ).join('')}
+          ${['Semester 1','Semester 2','Semester 3','Semester 4',
+             'Semester 5','Semester 6','Semester 7','Semester 8'].map(sem => {
+            const count = students.filter(s => s.semester === sem).length;
+            return `<div class="info-row">
+              <span class="info-key">${sem}</span>
+              <span class="badge badge-blue">${count} students</span>
+            </div>`;
+          }).join('')}
         </div>
       </div>
     </div>`;
-
-  // ── Students ──
-  buildStudentTable(user);
-  // ── Faculty ──
-  buildFacultyTable(user);
-  // ── All Users ──
-  buildAllUsersTable(user);
-  // ── Add User ──
-  buildAddUser(user);
 }
 
-/* ── Students table grouped by semester ── */
-function buildStudentTable(user) {
-  const allStudents = getStudents();
-  const att         = SS.get('ss_attendance') || {};
-  const marks       = SS.get('ss_marks')      || {};
-
-  let bodyHtml = '';
-
-  if (!allStudents.length) {
-    bodyHtml = '<div class="card"><div class="empty"><span class="empty-ico">👨‍🎓</span>No students registered yet.</div></div>';
-  } else {
-    SEMESTERS.forEach(function(sem) {
-      const studs = allStudents.filter(function(s){ return s.semester === sem; });
-      if (!studs.length) return;
-      let rows = '';
-      studs.forEach(function(u, i) {
-        const attCell   = att[u.email]   !== undefined ? valBadge(att[u.email])   : '—';
-        const marksCell = marks[u.email] !== undefined ? valBadge(marks[u.email]) : '—';
-        rows +=
-          '<tr>' +
-          '<td style="color:var(--muted)">' + (i+1) + '</td>' +
-          '<td><strong style="color:var(--white)">' + esc(u.name) + '</strong></td>' +
-          '<td style="color:var(--muted)">' + esc(u.email) + '</td>' +
-          '<td>' + attCell + '</td>' +
-          '<td>' + marksCell + '</td>' +
-          '<td style="color:var(--muted)">' + fmtDate(u.createdAt) + '</td>' +
-          '<td style="display:flex;gap:6px">' +
-            '<button class="btn btn-outline btn-sm adm-edit-sem" data-email="' + esc(u.email) + '" data-semester="' + esc(u.semester||'') + '" data-name="' + esc(u.name) + '">✏️ Sem</button>' +
-            '<button class="btn btn-danger btn-sm adm-del" data-email="' + esc(u.email) + '" data-sec="sec-students">Delete</button>' +
-          '</td>' +
-          '</tr>';
-      });
-      bodyHtml +=
-        '<div class="card" style="margin-bottom:1.25rem">' +
-        '<div class="card-title">📚 ' + sem +
-          ' <span class="badge badge-blue" style="margin-left:8px">' + studs.length + ' student' + (studs.length!==1?'s':'') + '</span>' +
-        '</div>' +
-        '<div class="table-wrap"><table>' +
-        '<thead><tr><th>#</th><th>Name</th><th>Email</th><th>Attendance</th><th>Marks</th><th>Joined</th><th>Actions</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-        '</table></div></div>';
-    });
-
-    // Students with no semester
-    const noSem = allStudents.filter(function(s){ return !s.semester; });
-    if (noSem.length) {
-      let rows = '';
-      noSem.forEach(function(u, i) {
-        rows +=
-          '<tr>' +
-          '<td style="color:var(--muted)">' + (i+1) + '</td>' +
-          '<td><strong style="color:var(--white)">' + esc(u.name) + '</strong></td>' +
-          '<td style="color:var(--muted)">' + esc(u.email) + '</td>' +
-          '<td style="color:var(--muted)">' + fmtDate(u.createdAt) + '</td>' +
-          '<td style="display:flex;gap:6px">' +
-            '<button class="btn btn-outline btn-sm adm-edit-sem" data-email="' + esc(u.email) + '" data-semester="" data-name="' + esc(u.name) + '">✏️ Sem</button>' +
-            '<button class="btn btn-danger btn-sm adm-del" data-email="' + esc(u.email) + '" data-sec="sec-students">Delete</button>' +
-          '</td>' +
-          '</tr>';
-      });
-      bodyHtml +=
-        '<div class="card" style="margin-bottom:1.25rem">' +
-        '<div class="card-title" style="color:var(--amber)">⚠️ No Semester Assigned</div>' +
-        '<div class="table-wrap"><table>' +
-        '<thead><tr><th>#</th><th>Name</th><th>Email</th><th>Joined</th><th>Actions</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-        '</table></div></div>';
-    }
-  }
-
-  document.getElementById('sec-students').innerHTML =
-    '<div class="page-head"><div class="page-title">👨‍🎓 Students</div><div class="page-sub">All registered students grouped by semester</div></div>' +
-    '<div id="sec-students-alert"></div>' +
-    '<div id="sem-edit-panel"></div>' +
-    bodyHtml;
-
-  attachAdminDel('sec-students', user);
-  attachSemEdit('sec-students', user);
+// ── Students ──
+function renderAdminStudents(students) {
+  document.getElementById('sec-students').innerHTML = `
+    <div class="page-head">
+      <div class="page-title">Students</div>
+      <div class="page-sub">All registered students</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👨‍🎓 Student List
+        <span class="badge badge-blue" style="margin-left:auto">${students.length}</span>
+      </div>
+      ${students.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Semester</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+              ${students.map(s => `
+                <tr>
+                  <td>${esc(s.name)}</td>
+                  <td>${esc(s.email)}</td>
+                  <td><span class="badge badge-violet">${esc(s.semester||'—')}</span></td>
+                  <td>
+                    <button class="btn btn-danger btn-sm"
+                      onclick="deleteUser('${s._id}','${esc(s.name)}')">
+                      🗑 Delete
+                    </button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : `<div class="empty"><span class="empty-ico">👨‍🎓</span>No students registered yet.</div>`}
+    </div>`;
 }
 
-/* ── Faculty table with semester column ── */
-function buildFacultyTable(user) {
-  const faculty = (SS.get('ss_users')||[]).filter(u=>u.role==='faculty');
-
-  let tableHtml = '';
-  if (!faculty.length) {
-    tableHtml = '<div class="card"><div class="empty"><span class="empty-ico">👩‍🏫</span>No faculty registered yet.</div></div>';
-  } else {
-    let rows = '';
-    faculty.forEach(function(u, i) {
-      rows +=
-        '<tr>' +
-        '<td style="color:var(--muted)">' + (i+1) + '</td>' +
-        '<td><strong style="color:var(--white)">' + esc(u.name) + '</strong></td>' +
-        '<td style="color:var(--muted)">' + esc(u.email) + '</td>' +
-        '<td>' + (u.semester ? '<span class="badge badge-violet">' + esc(u.semester) + '</span>' : '<span style="color:var(--amber)">Not set</span>') + '</td>' +
-        '<td style="color:var(--muted)">' + fmtDate(u.createdAt) + '</td>' +
-        '<td style="display:flex;gap:6px">' +
-          '<button class="btn btn-outline btn-sm adm-edit-sem" data-email="' + esc(u.email) + '" data-semester="' + esc(u.semester||'') + '" data-name="' + esc(u.name) + '">✏️ Sem</button>' +
-          '<button class="btn btn-danger btn-sm adm-del" data-email="' + esc(u.email) + '" data-sec="sec-faculty">Delete</button>' +
-        '</td>' +
-        '</tr>';
-    });
-    tableHtml =
-      '<div class="table-wrap"><table>' +
-      '<thead><tr><th>#</th><th>Name</th><th>Email</th><th>Semester</th><th>Joined</th><th>Actions</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody>' +
-      '</table></div>';
-  }
-
-  document.getElementById('sec-faculty').innerHTML =
-    '<div class="page-head"><div class="page-title">👩‍🏫 Faculty</div><div class="page-sub">All registered faculty members</div></div>' +
-    '<div id="sec-faculty-alert"></div>' +
-    '<div id="sem-edit-panel-faculty"></div>' +
-    tableHtml;
-
-  attachAdminDel('sec-faculty', user);
-  attachSemEdit('sec-faculty', user);
+// ── Faculty ──
+function renderAdminFaculty(faculty) {
+  document.getElementById('sec-faculty').innerHTML = `
+    <div class="page-head">
+      <div class="page-title">Faculty</div>
+      <div class="page-sub">All registered faculty members</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👩‍🏫 Faculty List
+        <span class="badge badge-violet" style="margin-left:auto">${faculty.length}</span>
+      </div>
+      ${faculty.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Department/Sem</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+              ${faculty.map(f => `
+                <tr>
+                  <td>${esc(f.name)}</td>
+                  <td>${esc(f.email)}</td>
+                  <td>${esc(f.semester||'—')}</td>
+                  <td>
+                    <button class="btn btn-danger btn-sm"
+                      onclick="deleteUser('${f._id}','${esc(f.name)}')">
+                      🗑 Delete
+                    </button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : `<div class="empty"><span class="empty-ico">👩‍🏫</span>No faculty registered yet.</div>`}
+    </div>`;
 }
 
-/* ── All Users table ── */
-function buildAllUsersTable(user) {
-  const allUsers = SS.get('ss_users') || [];
-  const roleMap  = { student:'badge-blue', faculty:'badge-violet', admin:'badge-rose' };
-
-  let rows = '';
-  allUsers.forEach(function(u, i) {
-    const semCell = u.role === 'admin'
-      ? '—'
-      : (u.semester ? esc(u.semester) : '<span style="color:var(--amber)">Not set</span>');
-    const actionCell = u.role !== 'admin'
-      ? '<div style="display:flex;gap:6px">' +
-          '<button class="btn btn-outline btn-sm adm-edit-sem" data-email="' + esc(u.email) + '" data-semester="' + esc(u.semester||'') + '" data-name="' + esc(u.name) + '">✏️ Sem</button>' +
-          '<button class="btn btn-danger btn-sm adm-del" data-email="' + esc(u.email) + '" data-sec="sec-all-users">Delete</button>' +
-        '</div>'
-      : '<span style="color:var(--muted);font-size:.78rem">Protected</span>';
-    rows +=
-      '<tr>' +
-      '<td style="color:var(--muted)">' + (i+1) + '</td>' +
-      '<td><strong style="color:var(--white)">' + esc(u.name) + '</strong></td>' +
-      '<td style="color:var(--muted)">' + esc(u.email) + '</td>' +
-      '<td><span class="badge ' + (roleMap[u.role]||'badge-gray') + '">' + u.role + '</span></td>' +
-      '<td style="color:var(--muted)">' + semCell + '</td>' +
-      '<td style="color:var(--muted)">' + fmtDate(u.createdAt) + '</td>' +
-      '<td>' + actionCell + '</td>' +
-      '</tr>';
-  });
-
-  document.getElementById('sec-all-users').innerHTML =
-    '<div class="page-head"><div class="page-title">👥 All Users</div><div class="page-sub">Every account in the system</div></div>' +
-    '<div id="sec-all-users-alert"></div>' +
-    '<div id="sem-edit-panel-all"></div>' +
-    (allUsers.length
-      ? '<div class="table-wrap"><table>' +
-        '<thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Semester</th><th>Joined</th><th>Actions</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-        '</table></div>'
-      : '<div class="card"><div class="empty">No users found.</div></div>');
-
-  attachAdminDel('sec-all-users', user);
-  attachSemEdit('sec-all-users', user);
+// ── All Users ──
+function renderAdminAllUsers(allUsers) {
+  document.getElementById('sec-all-users').innerHTML = `
+    <div class="page-head">
+      <div class="page-title">All Users</div>
+      <div class="page-sub">Complete user list</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 All Users
+        <span class="badge badge-blue" style="margin-left:auto">${allUsers.length}</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Email</th><th>Role</th><th>Semester</th><th>Action</th>
+          </tr></thead>
+          <tbody>
+            ${allUsers.map(u => `
+              <tr>
+                <td>${esc(u.name)}</td>
+                <td>${esc(u.email)}</td>
+                <td><span class="role-tag role-${u.role}">${u.role}</span></td>
+                <td>${esc(u.semester||'—')}</td>
+                <td>
+                  ${u.role !== 'admin' ? `
+                    <button class="btn btn-danger btn-sm"
+                      onclick="deleteUser('${u._id}','${esc(u.name)}')">
+                      🗑 Delete
+                    </button>` : '<span class="badge badge-gray">Protected</span>'}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
-/* ── Add User ── */
-function buildAddUser(user) {
+// ── Add User ──
+function renderAdminAddUser() {
   document.getElementById('sec-add-user').innerHTML = `
-    <div class="page-head"><div class="page-title">➕ Add User</div><div class="page-sub">Create a new student or faculty account</div></div>
-    <div class="card" style="max-width:480px">
-      <div class="card-title">New Account</div>
+    <div class="page-head">
+      <div class="page-title">Add User</div>
+      <div class="page-sub">Register a new student or faculty member</div>
+    </div>
+    <div class="card" style="max-width:520px">
+      <div class="card-title">➕ Create Account</div>
       <div id="add-user-alert"></div>
-      <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="au-name" placeholder="Enter full name"></div>
-      <div class="form-group"><label>Email Address</label><input type="email" class="form-control" id="au-email" placeholder="Enter email"></div>
-      <div class="form-group"><label>Password</label><input type="password" class="form-control" id="au-pass" placeholder="Min 6 characters"></div>
-      <div class="form-group"><label>Role</label>
-        <select class="form-control" id="au-role">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="au-name" class="form-control" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="au-email" class="form-control" placeholder="email@example.com">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="au-role" class="form-control">
           <option value="student">Student</option>
           <option value="faculty">Faculty</option>
         </select>
       </div>
-      <div class="form-group" id="au-sem-group">
+      <div class="form-group">
         <label>Class / Semester</label>
-        <select class="form-control" id="au-semester">
+        <select id="au-semester" class="form-control">
           <option value="">— Select semester —</option>
-          ${SEMESTERS.map(s=>`<option value="${s}">${s}</option>`).join('')}
+          <option>Semester 1</option><option>Semester 2</option>
+          <option>Semester 3</option><option>Semester 4</option>
+          <option>Semester 5</option><option>Semester 6</option>
+          <option>Semester 7</option><option>Semester 8</option>
         </select>
       </div>
-      <button class="btn btn-primary" id="au-submit">Create Account</button>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="au-pass" class="form-control" placeholder="Minimum 6 characters">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="submitAddUser()">
+        ➕ Create Account
+      </button>
     </div>`;
+}
 
-  document.getElementById('au-submit').addEventListener('click', function() {
-    const name     = document.getElementById('au-name').value.trim();
-    const email    = document.getElementById('au-email').value.trim();
-    const pass     = document.getElementById('au-pass').value;
-    const role     = document.getElementById('au-role').value;
-    const semester = document.getElementById('au-semester').value || null;
-    const res      = registerUser({ name, email, password:pass, role, semester });
-    if (res.ok) {
-      showAlert('add-user-alert','User created successfully!','success');
-      ['au-name','au-email','au-pass'].forEach(function(id){ document.getElementById(id).value=''; });
+// ── Submit Add User ──
+async function submitAddUser() {
+  const name     = document.getElementById('au-name').value.trim();
+  const email    = document.getElementById('au-email').value.trim();
+  const role     = document.getElementById('au-role').value;
+  const semester = document.getElementById('au-semester').value;
+  const password = document.getElementById('au-pass').value;
+
+  if (!name || !email || !password || !semester) {
+    showAlert('add-user-alert', 'All fields are required.', 'error');
+    return;
+  }
+
+  const btn = document.querySelector('#sec-add-user .btn-primary');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  try {
+    const data = await apiCreateUser({ name, email, password, role, semester });
+    if (data.msg === 'Account created successfully') {
+      showAlert('add-user-alert', `✅ ${role === 'faculty' ? 'Faculty' : 'Student'} account created for ${name}!`, 'success');
+      // Clear form
+      document.getElementById('au-name').value  = '';
+      document.getElementById('au-email').value = '';
+      document.getElementById('au-pass').value  = '';
       document.getElementById('au-semester').value = '';
-      renderAdminSections(user);
-      switchSec('add-user');
+      // Refresh user lists
+      const allUsers = await apiGetUsers();
+      renderAdminStudents(allUsers.filter(u => u.role === 'student'));
+      renderAdminFaculty(allUsers.filter(u => u.role === 'faculty'));
+      renderAdminAllUsers(allUsers);
     } else {
-      showAlert('add-user-alert', res.msg, 'error');
+      showAlert('add-user-alert', data.msg || 'Failed to create account.', 'error');
     }
-  });
+  } catch (err) {
+    showAlert('add-user-alert', 'Server error. Please try again.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '➕ Create Account';
 }
 
-/* ── Semester edit handler ── */
-function attachSemEdit(secId, user) {
-  document.querySelectorAll('#' + secId + ' .adm-edit-sem').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const email       = btn.dataset.email;
-      const currentSem  = btn.dataset.semester || '';
-      const name        = btn.dataset.name;
+// ── Delete User ──
+async function deleteUser(id, name) {
+  if (!confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) return;
 
-      // Determine which panel div to use based on section
-      const panelId = secId === 'sec-faculty'   ? 'sem-edit-panel-faculty'
-                    : secId === 'sec-all-users'  ? 'sem-edit-panel-all'
-                    : 'sem-edit-panel';
-      const panel = document.getElementById(panelId);
-      if (!panel) return;
-
-      const opts = SEMESTERS.map(function(s) {
-        return '<option value="' + s + '"' + (s === currentSem ? ' selected' : '') + '>' + s + '</option>';
-      }).join('');
-
-      panel.innerHTML =
-        '<div class="card" style="margin-bottom:1.25rem;border-color:var(--blue)">' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">' +
-            '<div style="font-weight:700;color:var(--white)">✏️ Edit Semester — ' + esc(name) + '</div>' +
-            '<button class="btn btn-outline btn-sm" id="sem-edit-close">✕ Close</button>' +
-          '</div>' +
-          '<div id="sem-edit-alert"></div>' +
-          '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
-            '<select class="form-control sem-select" id="sem-edit-val" style="max-width:220px">' +
-              '<option value="">— Select semester —</option>' +
-              opts +
-            '</select>' +
-            '<button class="btn btn-primary" id="sem-edit-save">💾 Save</button>' +
-          '</div>' +
-        '</div>';
-
-      document.getElementById('sem-edit-close').addEventListener('click', function() {
-        panel.innerHTML = '';
-      });
-
-      document.getElementById('sem-edit-save').addEventListener('click', function() {
-        const newSem = document.getElementById('sem-edit-val').value;
-        if (!newSem) { showAlert('sem-edit-alert', 'Please select a semester.'); return; }
-        const users = SS.get('ss_users') || [];
-        const idx   = users.findIndex(function(u){ return u.email === email; });
-        if (idx === -1) { showAlert('sem-edit-alert', 'User not found.', 'error'); return; }
-        users[idx].semester = newSem;
-        SS.set('ss_users', users);
-        // Update current user session if editing self (unlikely for admin but safe)
-        const cu = SS.get('ss_current_user');
-        if (cu && cu.email === email) { cu.semester = newSem; SS.set('ss_current_user', cu); }
-        toast('Semester updated to ' + newSem + '!', 'success');
-        panel.innerHTML = '';
-        renderAdminSections(user);
-        switchSec(secId.replace('sec-',''));
-      });
-
-      panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
-    });
-  });
-}
-
-/* ── Delete handler ── */
-function attachAdminDel(secId, user) {
-  document.querySelectorAll('#' + secId + ' .adm-del').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const email = btn.dataset.email;
-      if (!confirm('Delete user "' + email + '"?\nThis action cannot be undone.')) return;
-      let users = SS.get('ss_users') || [];
-      users = users.filter(function(u){ return u.email !== email; });
-      SS.set('ss_users', users);
-      ['ss_attendance','ss_marks','ss_notes','ss_assignments','ss_lab'].forEach(function(k){
-        const d = SS.get(k) || {};
-        delete d[email];
-        SS.set(k, d);
-      });
-      toast('User deleted.', 'success');
-      renderAdminSections(user);
-      switchSec(secId.replace('sec-',''));
-    });
-  });
+  try {
+    const data = await apiDeleteUser(id);
+    if (data.msg === 'User deleted successfully') {
+      toast(`${name} has been deleted.`, 'success');
+      // Refresh all sections
+      const allUsers = await apiGetUsers();
+      renderAdminStudents(allUsers.filter(u => u.role === 'student'));
+      renderAdminFaculty(allUsers.filter(u => u.role === 'faculty'));
+      renderAdminAllUsers(allUsers);
+      renderAdminOverview(
+        SS.get('ss_current_user'),
+        allUsers,
+        allUsers.filter(u => u.role === 'student'),
+        allUsers.filter(u => u.role === 'faculty')
+      );
+    } else {
+      toast(data.msg || 'Failed to delete user.', 'error');
+    }
+  } catch (err) {
+    toast('Server error.', 'error');
+  }
 }

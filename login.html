@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,89 +8,91 @@
   <link rel="icon" type="image/x-icon" href="css/logo.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
-<nav class="nav">
-  <a class="nav-brand" href="index.html">
-    <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
-    <span class="nav-brand-name">Student <em>Sphere</em></span>
-  </a>
-  <div class="nav-links">
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
+      <span class="nav-brand-name">Student <em>Sphere</em></span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about-dev.html">About</a>
+    </div>
+    <div class="nav-right">
+      <a href="register.html" class="btn btn-outline btn-sm">Create Account</a>
+    </div>
+    <button class="hamburger" id="ham-btn"><span></span><span></span><span></span></button>
+  </nav>
+  <div class="nav-drawer" id="nav-drawer">
     <a href="index.html">Home</a>
     <a href="about-dev.html">About</a>
+    <a href="register.html">Create Account</a>
   </div>
-  <div class="nav-right">
-    <a href="register.html" class="btn btn-outline btn-sm">Create Account</a>
+
+  <div class="pt-nav">
+    <div class="auth-page">
+      <div class="auth-box">
+        <div class="auth-logo">
+          <img src="css/logo.png" alt="Student Sphere Logo" class="auth-logo-icon">
+          <span class="auth-logo-name">Student <em>Sphere</em></span>
+        </div>
+
+        <h2>Welcome back</h2>
+        <p class="sub">Sign in to your account to continue</p>
+
+        <div id="auth-alert"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label for="l-email">Email Address</label>
+            <input type="email" id="l-email" class="form-control" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="l-pass">Password</label>
+            <input type="password" id="l-pass" class="form-control" placeholder="Enter your password" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:.25rem">Sign In</button>
+        </form>
+
+        <div class="auth-sep">OR</div>
+
+        <div class="demo-hint">
+          <strong>Admin Demo:</strong><br>
+          admin@studentsphere.com &nbsp;&nbsp; Password: admin123
+        </div>
+
+        <div class="auth-switch">
+          Contact your faculty or admin to create an account.
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2024 <span>Student Sphere</span></p>
+    </footer>
   </div>
-  <button class="hamburger" id="ham-btn"><span></span><span></span><span></span></button>
-</nav>
-<div class="nav-drawer" id="nav-drawer">
-  <a href="index.html">Home</a>
-  <a href="about-dev.html">About</a>
-  <a href="register.html">Create Account</a>
-</div>
 
-<div class="pt-nav">
-  <div class="auth-page">
-    <div class="auth-box">
-      <div class="auth-logo">
-        <img src="css/logo.png" alt="Student Sphere Logo" class="auth-logo-icon">
-        <span class="auth-logo-name">Student <em>Sphere</em></span>
-      </div>
-
-      <h2>Welcome back</h2>
-      <p class="sub">Sign in to your account to continue</p>
-
-      <div id="auth-alert"></div>
-
-      <form id="login-form">
-        <div class="form-group">
-          <label for="l-email">Email Address</label>
-          <input type="email" id="l-email" class="form-control" placeholder="you@example.com" required>
-        </div>
-        <div class="form-group">
-          <label for="l-pass">Password</label>
-          <input type="password" id="l-pass" class="form-control" placeholder="Enter your password" required>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" style="margin-top:.25rem">Sign In</button>
-      </form>
-
-      <div class="auth-sep">OR</div>
-
-      <div class="demo-hint">
-        <strong>Admin Demo:</strong><br>
-        admin@studentsphere.com &nbsp;&nbsp; Password: admin123
-      </div>
-
-      <div class="auth-switch">
-        Don't have an account? <a href="register.html">Register here</a>
-      </div>
+  <div class="egg-overlay" id="egg-overlay">
+    <div class="egg-box">
+      <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
+      <h2>Student <span>Sphere</span></h2>
+      <p>Designed &amp; Developed by</p>
+      <div class="egg-dev">Suman Kumar Singh</div>
+      <button class="btn btn-primary" id="egg-close">Close</button>
     </div>
   </div>
 
-  <footer>
-    <p>© 2024 <span>Student Sphere</span></p>
-  </footer>
-</div>
-
-<div class="egg-overlay" id="egg-overlay">
-  <div class="egg-box">
-    <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
-    <h2>Student <span>Sphere</span></h2>
-    <p>Designed &amp; Developed by</p>
-    <div class="egg-dev">Suman Kumar Singh</div>
-    <button class="btn btn-primary" id="egg-close">Close</button>
-  </div>
-</div>
-
-<script src="js/utils.js"></script>
-<script src="js/auth.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    initLogin();
-    initHam();
-    initEasterEgg();
-  });
-</script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      initLogin();
+      initHam();
+      initEasterEgg();
+    });
+  </script>
 </body>
+
 </html>
