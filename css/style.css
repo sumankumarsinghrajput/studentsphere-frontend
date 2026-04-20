@@ -1361,8 +1361,10 @@ footer span { color: var(--accent); }
   .nav { padding: 0 0.875rem; gap: 0.5rem; }
   .nav-brand-icon { width: 30px; height: 30px; font-size: 15px; }
 
-  /* Hide nav-right buttons (Sign In / Get Started) — hamburger menu only */
-  .nav > .nav-right > .btn { display: none; }
+  /* Hide public anchor nav buttons on mobile — keep logout button visible */
+  .nav > .nav-right > a.btn { display: none; }
+  /* Always keep logout and theme toggle visible */
+  .nav > .nav-right > button { display: inline-flex !important; }
 
   /* Drawer gets bigger tap targets */
   .nav-drawer a, .nav-drawer button { padding: 13px 14px; font-size: 0.95rem; }
@@ -1568,4 +1570,19 @@ footer span { color: var(--accent); }
 }
 @media (max-width: 900px) {
   #sb-toggle { display: flex; }
+}
+
+/* ── Dashboard nav-right: always show logout on mobile ── */
+@media (max-width: 600px) {
+  #nav-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  #nav-right .nav-username {
+    display: none;
+  }
+  #nav-right .role-tag {
+    display: none;
+  }
 }
