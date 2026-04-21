@@ -169,8 +169,7 @@ async function renderAdminStudents() {
                   <td>${mksBadge(d.marks)}</td>
                   <td style="font-size:.82rem;color:var(--muted)">${s.createdAt ? fmtDate(s.createdAt) : '—'}</td>
                   <td>
-                    <button class="btn btn-outline btn-sm" onclick="adminEditSem('${s._id}','${esc(s.name)}','${esc(s.semester||'')}')">✏️ Sem</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteUser('${s._id}','${esc(s.name)}')">Delete</button>
+                    <div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminEditSem('${s._id}','${esc(s.name)}','${esc(s.semester||'')}')">✏️ Sem</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${s._id}','${esc(s.name)}')">Delete</button></div>
                   </td>
                 </tr>`;
               }).join('')}
@@ -203,8 +202,7 @@ function renderAdminFaculty() {
                   <td><span class="badge badge-violet">${esc(f.semester||'—')}</span></td>
                   <td style="font-size:.82rem;color:var(--muted)">${f.createdAt ? fmtDate(f.createdAt) : '—'}</td>
                   <td>
-                    <button class="btn btn-outline btn-sm" onclick="adminEditSem('${f._id}','${esc(f.name)}','${esc(f.semester||'')}')">✏️ Sem</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteUser('${f._id}','${esc(f.name)}')">Delete</button>
+                    <div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminEditSem('${f._id}','${esc(f.name)}','${esc(f.semester||'')}')">✏️ Sem</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${f._id}','${esc(f.name)}')">Delete</button></div>
                   </td>
                 </tr>`).join('')}
             </tbody>
@@ -237,8 +235,7 @@ function renderAdminAllUsers() {
                 <td style="font-size:.82rem;color:var(--muted)">${u.createdAt ? fmtDate(u.createdAt) : '—'}</td>
                 <td>
                   ${u.role !== 'admin'
-                    ? `<button class="btn btn-outline btn-sm" onclick="adminEditSem('${u._id}','${esc(u.name)}','${esc(u.semester||'')}')">✏️ Sem</button>
-                       <button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}','${esc(u.name)}')">Delete</button>`
+                    ? `<div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminEditSem('${u._id}','${esc(u.name)}','${esc(u.semester||'')}')">✏️ Sem</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}','${esc(u.name)}')">Delete</button></div>`
                     : `<span class="badge badge-gray">Protected</span>`}
                 </td>
               </tr>`).join('')}
@@ -255,31 +252,35 @@ function renderAdminAddUser() {
       <div class="page-title">➕ Add User</div>
       <div class="page-sub">Create a new student or faculty account</div>
     </div>
-    <div class="card" style="max-width:540px">
+    <div class="card add-user-form">
       <div class="card-title">New Account</div>
       <div id="add-user-alert"></div>
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="au-name" class="form-control" placeholder="Enter full name">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="au-name" class="form-control" placeholder="Enter full name">
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="au-email" class="form-control" placeholder="email@example.com">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Email Address</label>
-        <input type="email" id="au-email" class="form-control" placeholder="email@example.com">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="au-pass" class="form-control" placeholder="Minimum 6 characters">
-      </div>
-      <div class="form-group">
-        <label>Role</label>
-        <select id="au-role" class="form-control">
-          <option value="student">Student</option>
-          <option value="faculty">Faculty</option>
-        </select>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="au-pass" class="form-control" placeholder="Minimum 6 characters">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="au-role" class="form-control">
+            <option value="student">Student</option>
+            <option value="faculty">Faculty</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Class / Semester</label>
-        <select id="au-semester" class="form-control">
+        <select id="au-semester" class="form-control" style="max-width:300px">
           <option value="">— Select semester —</option>
           <option>Semester 1</option><option>Semester 2</option>
           <option>Semester 3</option><option>Semester 4</option>
@@ -287,7 +288,7 @@ function renderAdminAddUser() {
           <option>Semester 7</option><option>Semester 8</option>
         </select>
       </div>
-      <button class="btn btn-primary btn-block" onclick="submitAddUser()">➕ Create Account</button>
+      <button class="btn btn-primary" onclick="submitAddUser()" style="min-width:180px">➕ Create Account</button>
     </div>`;
 }
 

@@ -221,7 +221,7 @@ function renderFacultyAttendance() {
       <div class="page-sub">Update attendance for a whole semester at once</div>
     </div>
     ${semBar('att-sem', 'loadBulkAttendance()', initSem)}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem" id="att-grid">
+    <div class="bulk-grid" id="att-grid">
       <div class="card">
         <div class="card-title" id="att-bulk-title">📅 Bulk Update</div>
         <div id="att-bulk-alert"></div>
@@ -332,7 +332,7 @@ function renderFacultyMarks() {
       <div class="page-sub">Update marks for a whole semester at once</div>
     </div>
     ${semBar('marks-sem', 'loadBulkMarks()', initSem)}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+    <div class="bulk-grid">
       <div class="card">
         <div class="card-title" id="marks-bulk-title">📊 Bulk Update</div>
         <div id="marks-bulk-alert"></div>
@@ -444,7 +444,7 @@ function contentUploadSection(type, icon, label) {
     <div class="card" style="margin-bottom:1.25rem">
       <div class="card-title">${icon} Upload ${label}</div>
       <div id="${id}-alert"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div class="upload-row-2">
         <div class="form-group" style="margin:0">
           <label>Upload To</label>
           <select id="${id}-target" class="form-control">
@@ -533,6 +533,8 @@ async function uploadContent(type) {
   if (lbl) lbl.textContent = 'Click to select file, or drag & drop here';
   document.getElementById(`${type}-drop`)?.classList.remove('dragover');
   if (btn) { btn.disabled = false; btn.textContent = `Upload`; }
+  // Reload the records list after upload
+  await loadContentRecords(type);
 }
 
 // Update target dropdown when semester changes
@@ -548,23 +550,97 @@ function updateTargetDropdown(type) {
 // ── Notes ──
 function renderFacultyNotes() {
   document.getElementById('sec-notes').innerHTML =
-    contentUploadSection('notes', '📓', 'Notes');
+    contentUploadSection('notes', '📓', 'Notes') +
+    `<div class="card" id="notes-records-card">
+      <div class="card-title">📋 Uploaded Notes <span class="badge badge-blue" id="notes-count" style="margin-left:.5rem">—</span></div>
+      <div id="notes-records"><div class="empty">Select a semester to view uploaded notes.</div></div>
+    </div>`;
 }
-function renderNotesSection() { updateTargetDropdown('notes'); }
+function renderNotesSection() { updateTargetDropdown('notes'); loadContentRecords('notes'); }
 
 // ── Assignments ──
 function renderFacultyAssignments() {
   document.getElementById('sec-assignments').innerHTML =
-    contentUploadSection('assignments', '📝', 'Assignments');
+    contentUploadSection('assignments', '📝', 'Assignments') +
+    `<div class="card" id="assignments-records-card">
+      <div class="card-title">📋 Uploaded Assignments <span class="badge badge-violet" id="assignments-count" style="margin-left:.5rem">—</span></div>
+      <div id="assignments-records"><div class="empty">Select a semester to view uploaded assignments.</div></div>
+    </div>`;
 }
-function renderAssignmentsSection() { updateTargetDropdown('assignments'); }
+function renderAssignmentsSection() { updateTargetDropdown('assignments'); loadContentRecords('assignments'); }
 
 // ── Lab Reports ──
 function renderFacultyLab() {
   document.getElementById('sec-lab').innerHTML =
-    contentUploadSection('lab', '🔬', 'Lab Reports');
+    contentUploadSection('lab', '🔬', 'Lab Reports') +
+    `<div class="card" id="lab-records-card">
+      <div class="card-title">📋 Uploaded Lab Reports <span class="badge badge-green" id="lab-count" style="margin-left:.5rem">—</span></div>
+      <div id="lab-records"><div class="empty">Select a semester to view uploaded lab reports.</div></div>
+    </div>`;
 }
-function renderLabSection() { updateTargetDropdown('lab'); }
+function renderLabSection() { updateTargetDropdown('lab'); loadContentRecords('lab'); }
+
+// ── Load content records for a semester ──
+async function loadContentRecords(type) {
+  const sem  = getSelSem(`${type}-sem`);
+  const sts  = semStudents(sem);
+  const recEl = document.getElementById(`${type}-records`);
+  const cntEl = document.getElementById(`${type}-count`);
+  if (!recEl) return;
+  if (!sts.length) { recEl.innerHTML = '<div class="empty">No students in this semester.</div>'; return; }
+
+  recEl.innerHTML = '<div class="empty">Loading…</div>';
+  const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
+
+  // Build flat list: { studentName, studentEmail, item, index }
+  const rows = [];
+  sts.forEach((s, si) => {
+    const d = dataArr[si];
+    const items = type === 'notes' ? (d.notes||[]) : type === 'assignments' ? (d.assignments||[]) : (d.lab||[]);
+    items.forEach((item, idx) => {
+      rows.push({ s, item, idx });
+    });
+  });
+
+  if (cntEl) cntEl.textContent = rows.length;
+
+  if (!rows.length) {
+    recEl.innerHTML = `<div class="empty">No ${type} uploaded yet for ${sem}.</div>`;
+    return;
+  }
+
+  const icon = type === 'notes' ? '📄' : type === 'assignments' ? '📋' : '🧪';
+  recEl.innerHTML = `<div class="item-list">
+    ${rows.map(({s, item, idx}) => `
+      <div class="item-row">
+        <div class="item-row-left">
+          <span class="item-row-icon">${item.fileData ? '📎' : icon}</span>
+          <div style="min-width:0">
+            <div class="item-row-text">${esc(item.text||'')}</div>
+            <div style="font-size:.72rem;color:var(--muted)">
+              ${esc(s.name)}
+              ${item.fileName ? ` · ${esc(item.fileName)} (${fmtSize(item.fileSize||0)})` : ''}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${item.fileData ? `<a href="${item.fileData}" download="${esc(item.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>` : ''}
+          <span class="item-row-date">${item.date ? fmtDate(item.date) : ''}</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteContentItem('${type}','${esc(s.email)}',${idx})">🗑</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function deleteContentItem(type, email, index) {
+  if (!confirm('Delete this item?')) return;
+  let res;
+  if      (type === 'notes')       res = await apiDeleteNote(email, index);
+  else if (type === 'assignments') res = await apiDeleteAssignment(email, index);
+  else if (type === 'lab')         res = await apiDeleteLab(email, index);
+  toast('Deleted!', 'success');
+  await loadContentRecords(type);
+}
 
 // ── Add Student ──
 function renderFacultyStudentAdd() {
