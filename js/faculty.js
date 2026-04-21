@@ -171,7 +171,7 @@ async function loadFacStudents() {
     ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff">${v}%</span>`
     : `<span class="badge badge-gray">—</span>`;
   const mksBadge = v => v !== null && v !== undefined
-    ? `<span class="badge" style="background:${v>=60?'var(--amber)':v>=75?'var(--green)':'var(--rose)'};color:#fff">${v}%</span>`
+    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=60?'var(--amber)':'var(--rose)'};color:#fff">${v}%</span>`
     : `<span class="badge badge-gray">—</span>`;
 
   el.innerHTML = `
