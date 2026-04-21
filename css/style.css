@@ -386,11 +386,11 @@ select.form-control { cursor: pointer; }
   min-height: calc(100vh - var(--nav-h));
   display: grid;
   place-items: center;
-  padding: 1.25rem 1rem;
+  padding: 2rem 1rem;
 }
 .auth-box {
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--r);
@@ -583,8 +583,6 @@ select.form-control { cursor: pointer; }
 .hero-title .hl {
   display: block;
   color: var(--accent);
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 .hero-desc {
   font-size: 1rem;
@@ -1677,52 +1675,3 @@ body {
 .hero-title .hl {
   text-shadow: 0 0 12px var(--accent-glow);
 }
-
-/* ── Table action buttons — always inline ── */
-.tbl-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-.tbl-actions .btn { flex-shrink: 0; }
-
-/* ── Add User form — use full available width ── */
-.add-user-form {
-  max-width: 700px;
-  width: 100%;
-}
-.add-user-form .form-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-/* ── Inline grid for att/marks — stack on mobile ── */
-.bulk-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-}
-
-/* ── Notes/Assignments/Lab upload row — stack on mobile ── */
-.upload-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-@media (max-width: 768px) {
-  .bulk-grid { grid-template-columns: 1fr; }
-  .upload-row-2 { grid-template-columns: 1fr; }
-  .add-user-form .form-row-2 { grid-template-columns: 1fr; }
-  .tbl-actions { flex-wrap: wrap; gap: 4px; }
-}
-
-@media (max-width: 600px) {
-  .auth-page { padding: 1rem 0.75rem; }
-  .auth-box  { padding: 1.5rem 1.25rem; max-width: 100%; }
-}
-
