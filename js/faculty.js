@@ -1,8 +1,9 @@
 // ────────────────────────────────────────────
-// faculty.js — Faculty dashboard (API version)
+// faculty.js — Faculty dashboard (matches original UI)
 // ────────────────────────────────────────────
 
 let _facultyStudents = [];
+let _currentSem = '';
 
 async function initFaculty() {
   const user = requireRole('faculty');
@@ -16,6 +17,7 @@ async function initFaculty() {
   initEasterEgg();
 
   _facultyStudents = await apiGetUsersByRole('student');
+  _currentSem = user.semester || '';
 
   renderFacultyOverview(user);
   renderFacultyStudents();
@@ -26,16 +28,42 @@ async function initFaculty() {
   renderFacultyLab();
 }
 
+// ── Semester selector bar (shared across sections) ──
+function semBar(id, onchange, selected) {
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const val = selected || _currentSem || (sems[0] || '');
+  return `
+    <div class="card" style="margin-bottom:1.25rem;padding:1rem 1.25rem">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <span style="font-weight:600;font-size:.875rem;color:var(--muted);white-space:nowrap">📚 CLASS / SEMESTER:</span>
+        <select class="form-control" id="${id}" onchange="${onchange}"
+          style="max-width:200px;padding:6px 10px;font-size:.875rem">
+          ${sems.length ? sems.map(s =>
+            `<option value="${esc(s)}"${s===val?' selected':''}>${esc(s)}</option>`
+          ).join('') : '<option value="">No semesters yet</option>'}
+        </select>
+      </div>
+    </div>`;
+}
+
+function getSelSem(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : _currentSem;
+}
+
+function semStudents(sem) {
+  return _facultyStudents.filter(s => s.semester === sem);
+}
+
 // ── Overview ──
 function renderFacultyOverview(user) {
-  const sem = user.semester || 'N/A';
-  const mySemStudents = _facultyStudents.filter(s => s.semester === sem);
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const totalAtt = _facultyStudents.filter(s => s._attSet).length;
+
   document.getElementById('sec-overview').innerHTML = `
     <div class="page-head">
-      <div class="page-title">Welcome, ${esc(user.name.split(' ')[0])} 👋</div>
-      <div class="page-sub">Faculty Dashboard &nbsp;·&nbsp;
-        <span style="color:var(--accent);font-weight:600">📚 ${esc(sem)}</span>
-      </div>
+      <div class="page-title">Faculty Dashboard</div>
+      <div class="page-sub">Manage student academic records by semester</div>
     </div>
     <div class="stat-row">
       <div class="stat-box">
@@ -43,660 +71,502 @@ function renderFacultyOverview(user) {
         <div class="stat-lbl">Total Students</div>
         <span class="stat-bg-icon">👨‍🎓</span>
       </div>
-      <div class="stat-box">
-        <div class="stat-val">${mySemStudents.length}</div>
-        <div class="stat-lbl">My Semester</div>
-        <span class="stat-bg-icon">📚</span>
+      <div class="stat-box" id="ov-att-box">
+        <div class="stat-val" id="ov-att">—</div>
+        <div class="stat-lbl">Attendance Updated</div>
+        <span class="stat-bg-icon">📅</span>
+      </div>
+      <div class="stat-box" id="ov-marks-box">
+        <div class="stat-val" id="ov-marks">—</div>
+        <div class="stat-lbl">Marks Updated</div>
+        <span class="stat-bg-icon">📊</span>
+      </div>
+      <div class="stat-box" id="ov-notes-box">
+        <div class="stat-val" id="ov-notes">—</div>
+        <div class="stat-lbl">Notes Uploaded</div>
+        <span class="stat-bg-icon">📓</span>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">👥 Students in ${esc(sem)}</div>
-      ${mySemStudents.length ? `
-        <div class="item-list">
-          ${mySemStudents.map(s => `
-            <div class="item-row">
-              <div class="item-row-left">
-                <div class="nav-avatar" style="width:32px;height:32px;font-size:.75rem;flex-shrink:0">
-                  ${initials(s.name)}
-                </div>
-                <div>
-                  <div class="item-row-text">${esc(s.name)}</div>
-                  <div style="font-size:.72rem;color:var(--muted)">${esc(s.email)}</div>
-                </div>
-              </div>
-              <span class="badge badge-blue">${esc(s.semester||'')}</span>
-            </div>`).join('')}
-        </div>` : `<div class="empty">No students in your semester yet.</div>`}
+      <div class="card-title">📚 Students by Semester</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Semester</th><th>Students</th><th>Attendance Set</th><th>Action</th>
+          </tr></thead>
+          <tbody id="sem-overview-body">
+            ${sems.map(sem => {
+              const sts = semStudents(sem);
+              return `<tr>
+                <td><strong>${esc(sem)}</strong></td>
+                <td><span class="badge badge-blue">${sts.length}</span></td>
+                <td id="att-set-${sem.replace(' ','-')}">Loading…</td>
+                <td><button class="btn btn-primary btn-sm"
+                  onclick="switchSec('students');document.getElementById('fac-sem-students').value='${esc(sem)}';loadFacStudents()">
+                  Manage →</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>`;
+
+  // Load stats async
+  loadOverviewStats(sems);
+}
+
+async function loadOverviewStats(sems) {
+  let attCount = 0, marksCount = 0, notesCount = 0;
+  const dataArr = await Promise.all(_facultyStudents.map(s => apiGetStudentData(s.email)));
+  _facultyStudents.forEach((s, i) => {
+    const d = dataArr[i];
+    if (d.attendance !== null && d.attendance !== undefined) attCount++;
+    if (d.marks !== null && d.marks !== undefined) marksCount++;
+    notesCount += (d.notes||[]).length;
+  });
+
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('ov-att',   attCount);
+  set('ov-marks', marksCount);
+  set('ov-notes', notesCount);
+
+  // Update semester attendance set counts
+  sems.forEach(sem => {
+    const sts = semStudents(sem);
+    const setCount = sts.filter((s, i) => {
+      const idx = _facultyStudents.indexOf(s);
+      return dataArr[idx] && dataArr[idx].attendance !== null && dataArr[idx].attendance !== undefined;
+    }).length;
+    const el = document.getElementById('att-set-' + sem.replace(' ','-'));
+    if (el) el.innerHTML = `<span style="color:var(--muted)">${setCount}/${sts.length}</span>`;
+  });
 }
 
 // ── Students ──
 function renderFacultyStudents() {
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const initSem = _currentSem || sems[0] || '';
+
   document.getElementById('sec-students').innerHTML = `
     <div class="page-head">
       <div class="page-title">Students</div>
-      <div class="page-sub">Add and view registered students</div>
+      <div class="page-sub">View and manage student records</div>
     </div>
-    <div class="card" style="margin-bottom:1.25rem">
-      <div class="card-title">➕ Add New Student</div>
-      <div id="add-student-alert"></div>
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="fs-name" class="form-control" placeholder="Student full name">
-      </div>
-      <div class="form-group">
-        <label>Email Address</label>
-        <input type="email" id="fs-email" class="form-control" placeholder="student@example.com">
-      </div>
-      <div class="form-group">
-        <label>Class / Semester</label>
-        <select id="fs-semester" class="form-control">
-          <option value="">— Select semester —</option>
-          <option>Semester 1</option><option>Semester 2</option>
-          <option>Semester 3</option><option>Semester 4</option>
-          <option>Semester 5</option><option>Semester 6</option>
-          <option>Semester 7</option><option>Semester 8</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="fs-pass" class="form-control" placeholder="Minimum 6 characters">
-      </div>
-      <button class="btn btn-primary" onclick="facultyAddStudent()">➕ Add Student</button>
-    </div>
+    ${semBar('fac-sem-students', 'loadFacStudents()', initSem)}
+    <div id="fac-students-table"><div class="empty">Select a semester above.</div></div>`;
+
+  if (initSem) loadFacStudents();
+}
+
+async function loadFacStudents() {
+  const sem = getSelSem('fac-sem-students');
+  const sts = semStudents(sem);
+  const el  = document.getElementById('fac-students-table');
+  if (!sts.length) { el.innerHTML = '<div class="empty">No students in this semester.</div>'; return; }
+
+  el.innerHTML = '<div class="empty">Loading…</div>';
+  const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
+
+  const attBadge = v => v !== null && v !== undefined
+    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff">${v}%</span>`
+    : `<span class="badge badge-gray">—</span>`;
+  const mksBadge = v => v !== null && v !== undefined
+    ? `<span class="badge" style="background:${v>=60?'var(--amber)':v>=75?'var(--green)':'var(--rose)'};color:#fff">${v}%</span>`
+    : `<span class="badge badge-gray">—</span>`;
+
+  el.innerHTML = `
     <div class="card">
-      <div class="card-title">👨‍🎓 All Students
-        <span class="badge badge-blue" style="margin-left:auto">${_facultyStudents.length}</span>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Attendance</th><th>Marks</th><th>Joined</th></tr></thead>
+          <tbody>
+            ${sts.map((s, i) => {
+              const d = dataArr[i];
+              return `<tr style="cursor:pointer" onclick="quickEditStudent('${esc(s.email)}','${esc(s.name)}',${d.attendance??'null'},${d.marks??'null'})">
+                <td>${i+1}</td>
+                <td><strong>${esc(s.name)}</strong></td>
+                <td style="color:var(--muted);font-size:.82rem">${esc(s.email)}</td>
+                <td>${attBadge(d.attendance)}</td>
+                <td>${mksBadge(d.marks)}</td>
+                <td style="font-size:.82rem;color:var(--muted)">${s.createdAt?fmtDate(s.createdAt):'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
       </div>
-      ${_facultyStudents.length ? `
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Semester</th></tr></thead>
-            <tbody>
-              ${_facultyStudents.map(s => `
-                <tr>
-                  <td>${esc(s.name)}</td>
-                  <td>${esc(s.email)}</td>
-                  <td><span class="badge badge-violet">${esc(s.semester||'—')}</span></td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>` : `<div class="empty"><span class="empty-ico">👨‍🎓</span>No students yet.</div>`}
+      <p style="font-size:.78rem;color:var(--muted);margin-top:.75rem">💡 Click a student row to edit their attendance &amp; marks.</p>
     </div>`;
 }
 
-async function facultyAddStudent() {
-  const name     = document.getElementById('fs-name').value.trim();
-  const email    = document.getElementById('fs-email').value.trim();
-  const semester = document.getElementById('fs-semester').value;
-  const password = document.getElementById('fs-pass').value;
-  if (!name || !email || !password || !semester) {
-    showAlert('add-student-alert', 'All fields are required.', 'error'); return;
-  }
-  try {
-    const data = await apiCreateUser({ name, email, password, role: 'student', semester });
-    if (data.msg === 'Account created successfully') {
-      showAlert('add-student-alert', `✅ Student ${name} added successfully!`, 'success');
-      document.getElementById('fs-name').value = '';
-      document.getElementById('fs-email').value = '';
-      document.getElementById('fs-pass').value = '';
-      document.getElementById('fs-semester').value = '';
-      _facultyStudents = await apiGetUsersByRole('student');
-      renderFacultyStudents();
-      renderFacultyAttendance();
-      renderFacultyMarks();
-    } else {
-      showAlert('add-student-alert', data.msg || 'Failed to add student.', 'error');
-    }
-  } catch (err) {
-    showAlert('add-student-alert', 'Server error.', 'error');
-  }
+function quickEditStudent(email, name, att, marks) {
+  const newAtt   = prompt(`Edit attendance for ${name} (current: ${att??'not set'})\nEnter 0-100:`, att??'');
+  if (newAtt === null) return;
+  const newMarks = prompt(`Edit marks for ${name} (current: ${marks??'not set'})\nEnter 0-100:`, marks??'');
+  if (newMarks === null) return;
+  const a = parseInt(newAtt), m = parseInt(newMarks);
+  const promises = [];
+  if (!isNaN(a) && a >= 0 && a <= 100) promises.push(apiUpdateAttendance(email, a));
+  if (!isNaN(m) && m >= 0 && m <= 100) promises.push(apiUpdateMarks(email, m));
+  Promise.all(promises).then(() => { toast(`${name} updated!`, 'success'); loadFacStudents(); });
 }
 
-// ── Semester filter for bulk views ──
-function semesterFilter(id, onchange) {
-  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
-  return `
-    <div class="sem-selector-wrap" style="margin-bottom:1rem">
-      <span class="sem-label">Filter by Semester</span>
-      <select class="form-control sem-select" id="${id}" onchange="${onchange}">
-        <option value="">— All Semesters —</option>
-        ${sems.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
-      </select>
-    </div>`;
-}
-
-// ── Individual student selector ──
-function studentSelector(id, onchange) {
-  return `
-    <div class="sem-selector-wrap" style="margin-bottom:1rem">
-      <span class="sem-label">Select Student</span>
-      <select class="form-control sem-select" id="${id}" onchange="${onchange}">
-        <option value="">— Choose a student —</option>
-        ${_facultyStudents.map(s =>
-          `<option value="${esc(s.email)}">${esc(s.name)} (${esc(s.semester||'')})</option>`
-        ).join('')}
-      </select>
-    </div>`;
-}
-
-// ════════════════════════════════════════
-// ATTENDANCE — Bulk + Individual
-// ════════════════════════════════════════
+// ── Attendance ──
 function renderFacultyAttendance() {
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const initSem = _currentSem || sems[0] || '';
+
   document.getElementById('sec-attendance').innerHTML = `
     <div class="page-head">
-      <div class="page-title">Attendance</div>
-      <div class="page-sub">Update attendance individually or in bulk for a whole semester</div>
+      <div class="page-title">📅 Attendance</div>
+      <div class="page-sub">Update attendance for a whole semester at once</div>
     </div>
-
-    <!-- TAB SWITCHER -->
-    <div style="display:flex;gap:.5rem;margin-bottom:1.5rem">
-      <button class="btn btn-primary btn-sm" id="att-tab-bulk" onclick="attShowTab('bulk')">📋 Bulk Update</button>
-      <button class="btn btn-outline btn-sm" id="att-tab-single" onclick="attShowTab('single')">👤 Individual</button>
-    </div>
-
-    <!-- BULK -->
-    <div id="att-bulk-panel">
+    ${semBar('att-sem', 'loadBulkAttendance()', initSem)}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem" id="att-grid">
       <div class="card">
-        <div class="card-title">📋 Bulk Attendance Update</div>
+        <div class="card-title" id="att-bulk-title">📅 Bulk Update</div>
         <div id="att-bulk-alert"></div>
-        ${semesterFilter('att-sem-filter', 'loadBulkAttendance()')}
-        <div id="att-bulk-table"><div class="empty">Select a semester to load students.</div></div>
-        <div id="att-bulk-actions" style="display:none;margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap">
-          <button class="btn btn-success" onclick="saveAllAttendance()">💾 Save All</button>
-          <button class="btn btn-outline" onclick="fillAllAttendance()">✏️ Fill All with Same Value</button>
+        <div id="att-bulk-body"><div class="empty">Select a semester above.</div></div>
+        <div id="att-save-btn" style="display:none;margin-top:1rem">
+          <button class="btn btn-primary" onclick="saveAllAttendance()">💾 Save All</button>
         </div>
       </div>
-    </div>
-
-    <!-- INDIVIDUAL -->
-    <div id="att-single-panel" style="display:none">
-      <div class="card" style="max-width:520px">
-        <div class="card-title">👤 Individual Attendance</div>
-        <div id="att-alert"></div>
-        ${studentSelector('att-student', 'loadStudentAttendance()')}
-        <div id="att-current" style="margin-bottom:1rem"></div>
-        <div class="form-group">
-          <label>Attendance Percentage (0–100)</label>
-          <input type="number" id="att-val" class="form-control" min="0" max="100" placeholder="e.g. 85">
-        </div>
-        <button class="btn btn-primary" onclick="saveAttendance()">💾 Save</button>
+      <div class="card">
+        <div class="card-title">📋 Current Records</div>
+        <div id="att-current-records"><div class="empty">Select a semester to view records.</div></div>
       </div>
     </div>`;
-}
 
-function attShowTab(tab) {
-  const isBulk = tab === 'bulk';
-  document.getElementById('att-bulk-panel').style.display  = isBulk ? 'block' : 'none';
-  document.getElementById('att-single-panel').style.display = isBulk ? 'none'  : 'block';
-  document.getElementById('att-tab-bulk').className   = isBulk ? 'btn btn-primary btn-sm'  : 'btn btn-outline btn-sm';
-  document.getElementById('att-tab-single').className = isBulk ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
+  if (initSem) loadBulkAttendance();
 }
 
 async function loadBulkAttendance() {
-  const sem = document.getElementById('att-sem-filter').value;
-  const students = sem
-    ? _facultyStudents.filter(s => s.semester === sem)
-    : _facultyStudents;
+  const sem = getSelSem('att-sem');
+  const sts = semStudents(sem);
+  const titleEl = document.getElementById('att-bulk-title');
+  if (titleEl) titleEl.textContent = `📅 Bulk Update — ${sem}`;
 
-  if (!students.length) {
-    document.getElementById('att-bulk-table').innerHTML = '<div class="empty">No students found.</div>';
-    document.getElementById('att-bulk-actions').style.display = 'none';
+  if (!sts.length) {
+    document.getElementById('att-bulk-body').innerHTML = '<div class="empty">No students.</div>';
+    document.getElementById('att-current-records').innerHTML = '<div class="empty">No students.</div>';
     return;
   }
 
-  document.getElementById('att-bulk-table').innerHTML = '<div class="empty">Loading…</div>';
+  document.getElementById('att-bulk-body').innerHTML = '<div class="empty">Loading…</div>';
+  document.getElementById('att-current-records').innerHTML = '<div class="empty">Loading…</div>';
 
-  // Fetch all student data in parallel
-  const dataArr = await Promise.all(students.map(s => apiGetStudentData(s.email)));
+  const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
 
-  const rows = students.map((s, i) => {
+  // Left: editable inputs
+  document.getElementById('att-bulk-body').innerHTML = sts.map((s, i) => {
     const cur = dataArr[i].attendance ?? '';
-    return `<tr>
-      <td>${esc(s.name)}</td>
-      <td style="font-size:.8rem;color:var(--muted)">${esc(s.email)}</td>
-      <td><span class="badge badge-violet">${esc(s.semester||'—')}</span></td>
-      <td style="width:130px">
-        <input type="number" class="form-control bulk-att-input"
-          data-email="${esc(s.email)}"
-          min="0" max="100" value="${cur}"
-          placeholder="0–100"
-          style="padding:5px 8px;font-size:.85rem">
-      </td>
-    </tr>`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:600;font-size:.875rem">${esc(s.name)}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${esc(s.email)}</div>
+      </div>
+      <input type="number" class="form-control bulk-att-inp" data-email="${esc(s.email)}"
+        min="0" max="100" value="${cur}" placeholder="0–100"
+        style="width:80px;padding:5px 8px;font-size:.875rem;flex-shrink:0">
+    </div>`;
   }).join('');
+  document.getElementById('att-save-btn').style.display = 'block';
 
-  document.getElementById('att-bulk-table').innerHTML = `
-    <div id="att-fill-bar" style="display:none;margin-bottom:.75rem;display:flex;gap:.5rem;align-items:center">
-      <input type="number" id="att-fill-val" class="form-control" min="0" max="100" placeholder="Value for all" style="max-width:130px">
-      <button class="btn btn-primary btn-sm" onclick="applyFillAttendance()">Apply to All</button>
-    </div>
+  // Right: current records table
+  const attBadge = v => v !== null && v !== undefined
+    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff;min-width:44px;text-align:center">${v}%</span>`
+    : `<span class="badge badge-gray" style="min-width:44px">—</span>`;
+
+  document.getElementById('att-current-records').innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Semester</th><th>Attendance %</th></tr></thead>
-        <tbody>${rows}</tbody>
+        <thead><tr><th>Student</th><th>Email</th><th>Attendance %</th><th>Action</th></tr></thead>
+        <tbody>
+          ${sts.map((s,i) => `<tr>
+            <td><strong>${esc(s.name)}</strong></td>
+            <td style="font-size:.78rem;color:var(--muted)">${esc(s.email)}</td>
+            <td>${attBadge(dataArr[i].attendance)}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="inlineEditAtt('${esc(s.email)}','${esc(s.name)}',${dataArr[i].attendance??'null'})">Edit</button></td>
+          </tr>`).join('')}
+        </tbody>
       </table>
     </div>`;
-  document.getElementById('att-bulk-actions').style.display = 'flex';
-}
-
-function fillAllAttendance() {
-  const bar = document.getElementById('att-fill-bar');
-  if (bar) bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
-}
-
-function applyFillAttendance() {
-  const val = document.getElementById('att-fill-val').value;
-  if (!val) return;
-  document.querySelectorAll('.bulk-att-input').forEach(inp => inp.value = val);
 }
 
 async function saveAllAttendance() {
-  const inputs = document.querySelectorAll('.bulk-att-input');
-  if (!inputs.length) return;
-  const btn = document.querySelector('#att-bulk-actions .btn-success');
+  const inputs = document.querySelectorAll('.bulk-att-inp');
+  const btn = document.querySelector('#att-save-btn .btn-primary');
   btn.disabled = true; btn.textContent = 'Saving…';
-
-  let saved = 0, errors = 0;
-  const promises = Array.from(inputs).map(async inp => {
+  let saved = 0, skipped = 0;
+  await Promise.all(Array.from(inputs).map(async inp => {
     const email = inp.dataset.email;
     const val   = parseInt(inp.value);
-    if (!email || isNaN(val) || val < 0 || val > 100) { errors++; return; }
+    if (!email || isNaN(val) || val < 0 || val > 100) { skipped++; return; }
     const res = await apiUpdateAttendance(email, val);
     if (res.msg === 'Attendance updated') saved++;
-    else errors++;
-  });
-  await Promise.all(promises);
-
-  showAlert('att-bulk-alert',
-    `✅ Saved ${saved} records${errors ? ` · ⚠️ ${errors} skipped (invalid value)` : ''}`,
-    errors ? 'info' : 'success');
+    else skipped++;
+  }));
+  showAlert('att-bulk-alert', `✅ Saved ${saved}${skipped?` · ⚠️ ${skipped} skipped`:''}`, 'success');
   btn.disabled = false; btn.textContent = '💾 Save All';
+  // Refresh right panel
+  await loadBulkAttendance();
 }
 
-// Individual
-async function loadStudentAttendance() {
-  const email = document.getElementById('att-student').value;
-  if (!email) return;
-  const data = await apiGetStudentData(email);
-  const att  = data.attendance;
-  document.getElementById('att-current').innerHTML = att !== null && att !== undefined
-    ? `<div class="alert alert-info">Current: <strong>${att}%</strong></div>`
-    : `<div class="alert alert-info">No attendance recorded yet.</div>`;
-  if (att !== null && att !== undefined) document.getElementById('att-val').value = att;
+async function inlineEditAtt(email, name, cur) {
+  const val = prompt(`Edit attendance for ${name} (current: ${cur??'not set'})\nEnter 0–100:`, cur??'');
+  if (val === null) return;
+  const v = parseInt(val);
+  if (isNaN(v) || v < 0 || v > 100) { toast('Invalid value.', 'error'); return; }
+  await apiUpdateAttendance(email, v);
+  toast(`${name} attendance updated!`, 'success');
+  await loadBulkAttendance();
 }
 
-async function saveAttendance() {
-  const email = document.getElementById('att-student').value;
-  const val   = parseInt(document.getElementById('att-val').value);
-  if (!email) { showAlert('att-alert','Select a student first.','error'); return; }
-  if (isNaN(val) || val < 0 || val > 100) { showAlert('att-alert','Enter 0–100.','error'); return; }
-  const res = await apiUpdateAttendance(email, val);
-  showAlert('att-alert', res.msg || 'Updated!', 'success');
-}
-
-// ════════════════════════════════════════
-// MARKS — Bulk + Individual
-// ════════════════════════════════════════
+// ── Marks ──
 function renderFacultyMarks() {
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const initSem = _currentSem || sems[0] || '';
+
   document.getElementById('sec-marks').innerHTML = `
     <div class="page-head">
-      <div class="page-title">Marks</div>
-      <div class="page-sub">Update marks individually or in bulk for a whole semester</div>
+      <div class="page-title">📊 Marks</div>
+      <div class="page-sub">Update marks for a whole semester at once</div>
     </div>
-
-    <div style="display:flex;gap:.5rem;margin-bottom:1.5rem">
-      <button class="btn btn-primary btn-sm" id="marks-tab-bulk" onclick="marksShowTab('bulk')">📋 Bulk Update</button>
-      <button class="btn btn-outline btn-sm" id="marks-tab-single" onclick="marksShowTab('single')">👤 Individual</button>
-    </div>
-
-    <!-- BULK -->
-    <div id="marks-bulk-panel">
+    ${semBar('marks-sem', 'loadBulkMarks()', initSem)}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
       <div class="card">
-        <div class="card-title">📋 Bulk Marks Update</div>
+        <div class="card-title" id="marks-bulk-title">📊 Bulk Update</div>
         <div id="marks-bulk-alert"></div>
-        ${semesterFilter('marks-sem-filter', 'loadBulkMarks()')}
-        <div id="marks-bulk-table"><div class="empty">Select a semester to load students.</div></div>
-        <div id="marks-bulk-actions" style="display:none;margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap">
-          <button class="btn btn-success" onclick="saveAllMarks()">💾 Save All</button>
-          <button class="btn btn-outline" onclick="fillAllMarks()">✏️ Fill All with Same Value</button>
+        <div id="marks-bulk-body"><div class="empty">Select a semester above.</div></div>
+        <div id="marks-save-btn" style="display:none;margin-top:1rem">
+          <button class="btn btn-primary" onclick="saveAllMarks()">💾 Save All</button>
         </div>
       </div>
-    </div>
-
-    <!-- INDIVIDUAL -->
-    <div id="marks-single-panel" style="display:none">
-      <div class="card" style="max-width:520px">
-        <div class="card-title">👤 Individual Marks</div>
-        <div id="marks-alert"></div>
-        ${studentSelector('marks-student', 'loadStudentMarks()')}
-        <div id="marks-current" style="margin-bottom:1rem"></div>
-        <div class="form-group">
-          <label>Marks Percentage (0–100)</label>
-          <input type="number" id="marks-val" class="form-control" min="0" max="100" placeholder="e.g. 72">
-        </div>
-        <button class="btn btn-primary" onclick="saveMarks()">💾 Save</button>
+      <div class="card">
+        <div class="card-title">📋 Current Records</div>
+        <div id="marks-current-records"><div class="empty">Select a semester to view records.</div></div>
       </div>
     </div>`;
-}
 
-function marksShowTab(tab) {
-  const isBulk = tab === 'bulk';
-  document.getElementById('marks-bulk-panel').style.display  = isBulk ? 'block' : 'none';
-  document.getElementById('marks-single-panel').style.display = isBulk ? 'none'  : 'block';
-  document.getElementById('marks-tab-bulk').className   = isBulk ? 'btn btn-primary btn-sm'  : 'btn btn-outline btn-sm';
-  document.getElementById('marks-tab-single').className = isBulk ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
+  if (initSem) loadBulkMarks();
 }
 
 async function loadBulkMarks() {
-  const sem = document.getElementById('marks-sem-filter').value;
-  const students = sem
-    ? _facultyStudents.filter(s => s.semester === sem)
-    : _facultyStudents;
+  const sem = getSelSem('marks-sem');
+  const sts = semStudents(sem);
+  const titleEl = document.getElementById('marks-bulk-title');
+  if (titleEl) titleEl.textContent = `📊 Bulk Update — ${sem}`;
 
-  if (!students.length) {
-    document.getElementById('marks-bulk-table').innerHTML = '<div class="empty">No students found.</div>';
-    document.getElementById('marks-bulk-actions').style.display = 'none';
+  if (!sts.length) {
+    document.getElementById('marks-bulk-body').innerHTML = '<div class="empty">No students.</div>';
+    document.getElementById('marks-current-records').innerHTML = '<div class="empty">No students.</div>';
     return;
   }
 
-  document.getElementById('marks-bulk-table').innerHTML = '<div class="empty">Loading…</div>';
-  const dataArr = await Promise.all(students.map(s => apiGetStudentData(s.email)));
+  document.getElementById('marks-bulk-body').innerHTML = '<div class="empty">Loading…</div>';
+  document.getElementById('marks-current-records').innerHTML = '<div class="empty">Loading…</div>';
 
-  const rows = students.map((s, i) => {
+  const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
+
+  document.getElementById('marks-bulk-body').innerHTML = sts.map((s, i) => {
     const cur = dataArr[i].marks ?? '';
-    return `<tr>
-      <td>${esc(s.name)}</td>
-      <td style="font-size:.8rem;color:var(--muted)">${esc(s.email)}</td>
-      <td><span class="badge badge-violet">${esc(s.semester||'—')}</span></td>
-      <td style="width:130px">
-        <input type="number" class="form-control bulk-marks-input"
-          data-email="${esc(s.email)}"
-          min="0" max="100" value="${cur}"
-          placeholder="0–100"
-          style="padding:5px 8px;font-size:.85rem">
-      </td>
-    </tr>`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:600;font-size:.875rem">${esc(s.name)}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${esc(s.email)}</div>
+      </div>
+      <input type="number" class="form-control bulk-marks-inp" data-email="${esc(s.email)}"
+        min="0" max="100" value="${cur}" placeholder="0–100"
+        style="width:80px;padding:5px 8px;font-size:.875rem;flex-shrink:0">
+    </div>`;
   }).join('');
+  document.getElementById('marks-save-btn').style.display = 'block';
 
-  document.getElementById('marks-bulk-table').innerHTML = `
-    <div id="marks-fill-bar" style="display:none;margin-bottom:.75rem;display:flex;gap:.5rem;align-items:center">
-      <input type="number" id="marks-fill-val" class="form-control" min="0" max="100" placeholder="Value for all" style="max-width:130px">
-      <button class="btn btn-primary btn-sm" onclick="applyFillMarks()">Apply to All</button>
-    </div>
+  const mksBadge = v => v !== null && v !== undefined
+    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=60?'var(--amber)':'var(--rose)'};color:#fff;min-width:44px;text-align:center">${v}%</span>`
+    : `<span class="badge badge-gray" style="min-width:44px">—</span>`;
+
+  document.getElementById('marks-current-records').innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Semester</th><th>Marks %</th></tr></thead>
-        <tbody>${rows}</tbody>
+        <thead><tr><th>Student</th><th>Email</th><th>Marks %</th><th>Action</th></tr></thead>
+        <tbody>
+          ${sts.map((s,i) => `<tr>
+            <td><strong>${esc(s.name)}</strong></td>
+            <td style="font-size:.78rem;color:var(--muted)">${esc(s.email)}</td>
+            <td>${mksBadge(dataArr[i].marks)}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="inlineEditMarks('${esc(s.email)}','${esc(s.name)}',${dataArr[i].marks??'null'})">Edit</button></td>
+          </tr>`).join('')}
+        </tbody>
       </table>
     </div>`;
-  document.getElementById('marks-bulk-actions').style.display = 'flex';
-}
-
-function fillAllMarks() {
-  const bar = document.getElementById('marks-fill-bar');
-  if (bar) bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
-}
-
-function applyFillMarks() {
-  const val = document.getElementById('marks-fill-val').value;
-  if (!val) return;
-  document.querySelectorAll('.bulk-marks-input').forEach(inp => inp.value = val);
 }
 
 async function saveAllMarks() {
-  const inputs = document.querySelectorAll('.bulk-marks-input');
-  if (!inputs.length) return;
-  const btn = document.querySelector('#marks-bulk-actions .btn-success');
+  const inputs = document.querySelectorAll('.bulk-marks-inp');
+  const btn = document.querySelector('#marks-save-btn .btn-primary');
   btn.disabled = true; btn.textContent = 'Saving…';
-
-  let saved = 0, errors = 0;
-  const promises = Array.from(inputs).map(async inp => {
+  let saved = 0, skipped = 0;
+  await Promise.all(Array.from(inputs).map(async inp => {
     const email = inp.dataset.email;
     const val   = parseInt(inp.value);
-    if (!email || isNaN(val) || val < 0 || val > 100) { errors++; return; }
+    if (!email || isNaN(val) || val < 0 || val > 100) { skipped++; return; }
     const res = await apiUpdateMarks(email, val);
     if (res.msg === 'Marks updated') saved++;
-    else errors++;
-  });
-  await Promise.all(promises);
-
-  showAlert('marks-bulk-alert',
-    `✅ Saved ${saved} records${errors ? ` · ⚠️ ${errors} skipped (invalid value)` : ''}`,
-    errors ? 'info' : 'success');
+    else skipped++;
+  }));
+  showAlert('marks-bulk-alert', `✅ Saved ${saved}${skipped?` · ⚠️ ${skipped} skipped`:''}`, 'success');
   btn.disabled = false; btn.textContent = '💾 Save All';
+  await loadBulkMarks();
 }
 
-async function loadStudentMarks() {
-  const email = document.getElementById('marks-student').value;
-  if (!email) return;
-  const data  = await apiGetStudentData(email);
-  const marks = data.marks;
-  document.getElementById('marks-current').innerHTML = marks !== null && marks !== undefined
-    ? `<div class="alert alert-info">Current: <strong>${marks}%</strong></div>`
-    : `<div class="alert alert-info">No marks recorded yet.</div>`;
-  if (marks !== null && marks !== undefined) document.getElementById('marks-val').value = marks;
+async function inlineEditMarks(email, name, cur) {
+  const val = prompt(`Edit marks for ${name} (current: ${cur??'not set'})\nEnter 0–100:`, cur??'');
+  if (val === null) return;
+  const v = parseInt(val);
+  if (isNaN(v) || v < 0 || v > 100) { toast('Invalid value.', 'error'); return; }
+  await apiUpdateMarks(email, v);
+  toast(`${name} marks updated!`, 'success');
+  await loadBulkMarks();
 }
 
-async function saveMarks() {
-  const email = document.getElementById('marks-student').value;
-  const val   = parseInt(document.getElementById('marks-val').value);
-  if (!email) { showAlert('marks-alert','Select a student first.','error'); return; }
-  if (isNaN(val) || val < 0 || val > 100) { showAlert('marks-alert','Enter 0–100.','error'); return; }
-  const res = await apiUpdateMarks(email, val);
-  showAlert('marks-alert', res.msg || 'Updated!', 'success');
+// ── Shared content upload (Notes / Assignments / Lab) ──
+function contentUploadSection(type, icon, label) {
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const initSem = _currentSem || sems[0] || '';
+  const id = type;
+
+  return `
+    <div class="page-head">
+      <div class="page-title">${icon} ${label}</div>
+      <div class="page-sub">Upload ${label.toLowerCase()} to an entire semester class or to individual students</div>
+    </div>
+    ${semBar(`${id}-sem`, `render${cap(type)}Section()`, initSem)}
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title">${icon} Upload ${label}</div>
+      <div id="${id}-alert"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+        <div class="form-group" style="margin:0">
+          <label>Upload To</label>
+          <select id="${id}-target" class="form-control">
+            <option value="__all__">— All students in semester —</option>
+            ${_facultyStudents.filter(s => s.semester === initSem).map(s =>
+              `<option value="${esc(s.email)}">${esc(s.name)}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>${label} Title / Description</label>
+          <input type="text" id="${id}-text" class="form-control" placeholder="Enter ${label.toLowerCase()} title…">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Attach File <span style="color:var(--muted)">(optional)</span></label>
+        <div class="file-upload-area" id="${id}-drop" onclick="document.getElementById('${id}-file').click()"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="handleDrop(event,'${id}-file','${id}-drop')">
+          <span class="file-upload-icon">📁</span>
+          <span id="${id}-file-lbl">Click to select file, or drag &amp; drop here</span>
+        </div>
+        <input type="file" id="${id}-file" style="display:none" onchange="showFileName('${id}-file','${id}-file-lbl','${id}-drop')">
+      </div>
+      <button class="btn btn-primary" onclick="uploadContent('${type}')">
+        ${icon} Upload ${label}
+      </button>
+    </div>`;
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function handleDrop(e, fileId, dropId) {
+  e.preventDefault();
+  document.getElementById(dropId).classList.remove('dragover');
+  const dt = e.dataTransfer;
+  if (dt.files.length) {
+    const inp = document.getElementById(fileId);
+    // Create a DataTransfer to assign files
+    const transfer = new DataTransfer();
+    transfer.items.add(dt.files[0]);
+    inp.files = transfer.files;
+    showFileName(fileId, fileId.replace('-file','-file-lbl'), dropId);
+  }
+}
+
+function showFileName(fileId, lblId, dropId) {
+  const inp = document.getElementById(fileId);
+  const lbl = document.getElementById(lblId);
+  if (inp && inp.files.length && lbl) {
+    lbl.textContent = '📎 ' + inp.files[0].name + ' (' + fmtSize(inp.files[0].size) + ')';
+    document.getElementById(dropId)?.classList.add('dragover');
+  }
+}
+
+async function uploadContent(type) {
+  const sem    = getSelSem(`${type}-sem`);
+  const target = document.getElementById(`${type}-target`).value;
+  const text   = document.getElementById(`${type}-text`).value.trim();
+  const file   = document.getElementById(`${type}-file`).files[0];
+
+  if (!text) { showAlert(`${type}-alert`, 'Enter a title / description.', 'error'); return; }
+
+  let fileData = null, fileName = null, fileSize = null;
+  if (file) { fileData = await fileToBase64(file); fileName = file.name; fileSize = file.size; }
+
+  const btn = document.querySelector(`#${type}-alert ~ div button, #sec-${type} .btn-primary`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+
+  const targets = target === '__all__' ? semStudents(sem).map(s => s.email) : [target];
+
+  let ok = 0;
+  await Promise.all(targets.map(async email => {
+    let res;
+    if      (type === 'notes')       res = await apiAddNote(email, text, fileData, fileName, fileSize);
+    else if (type === 'assignments') res = await apiAddAssignment(email, text, fileData, fileName, fileSize);
+    else if (type === 'lab')         res = await apiAddLab(email, text, fileData, fileName, fileSize);
+    if (res && (res.msg === 'Note added' || res.msg === 'Assignment added' || res.msg === 'Lab report added')) ok++;
+  }));
+
+  showAlert(`${type}-alert`, `✅ Uploaded to ${ok} student${ok!==1?'s':''}!`, 'success');
+  document.getElementById(`${type}-text`).value = '';
+  document.getElementById(`${type}-file`).value = '';
+  const lbl = document.getElementById(`${type}-file-lbl`);
+  if (lbl) lbl.textContent = 'Click to select file, or drag & drop here';
+  document.getElementById(`${type}-drop`)?.classList.remove('dragover');
+  if (btn) { btn.disabled = false; btn.textContent = `Upload`; }
+}
+
+// Update target dropdown when semester changes
+function updateTargetDropdown(type) {
+  const sem = getSelSem(`${type}-sem`);
+  const sel = document.getElementById(`${type}-target`);
+  if (!sel) return;
+  const sts = semStudents(sem);
+  sel.innerHTML = `<option value="__all__">— All students in semester —</option>` +
+    sts.map(s => `<option value="${esc(s.email)}">${esc(s.name)}</option>`).join('');
 }
 
 // ── Notes ──
 function renderFacultyNotes() {
-  document.getElementById('sec-notes').innerHTML = `
-    <div class="page-head">
-      <div class="page-title">Notes</div>
-      <div class="page-sub">Upload study materials to students</div>
-    </div>
-    <div class="card" style="max-width:560px">
-      <div class="card-title">📓 Upload Note</div>
-      <div id="notes-alert"></div>
-      ${studentSelector('notes-student', 'loadStudentNotes()')}
-      <div class="form-group">
-        <label>Note Title / Description</label>
-        <input type="text" id="notes-text" class="form-control" placeholder="e.g. Chapter 5 Notes">
-      </div>
-      <div class="form-group">
-        <label>Attach File (optional)</label>
-        <input type="file" id="notes-file" class="form-control">
-      </div>
-      <button class="btn btn-primary" onclick="saveNote()">📤 Upload Note</button>
-    </div>
-    <div class="card" style="margin-top:1.25rem">
-      <div class="card-title">📋 Student Notes</div>
-      <div id="notes-list"><div class="empty">Select a student to view their notes.</div></div>
-    </div>`;
+  document.getElementById('sec-notes').innerHTML =
+    contentUploadSection('notes', '📓', 'Notes');
 }
-
-async function loadStudentNotes() {
-  const email = document.getElementById('notes-student').value;
-  if (!email) return;
-  const data  = await apiGetStudentData(email);
-  const notes = data.notes || [];
-  document.getElementById('notes-list').innerHTML = notes.length
-    ? `<div class="item-list">${notes.map((n,i) => `
-        <div class="item-row">
-          <div class="item-row-left">
-            <span class="item-row-icon">${n.fileData?'📎':'📄'}</span>
-            <div>
-              <div class="item-row-text">${esc(n.text)}</div>
-              ${n.fileData?`<div style="font-size:.72rem;color:var(--muted)">${esc(n.fileName||'')} · ${fmtSize(n.fileSize||0)}</div>`:''}
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-            ${n.fileData?`<a href="${n.fileData}" download="${esc(n.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>`:''}
-            <button class="btn btn-danger btn-sm" onclick="deleteNote('${email}',${i})">🗑</button>
-          </div>
-        </div>`).join('')}</div>`
-    : `<div class="empty">No notes for this student.</div>`;
-}
-
-async function saveNote() {
-  const email = document.getElementById('notes-student').value;
-  const text  = document.getElementById('notes-text').value.trim();
-  const file  = document.getElementById('notes-file').files[0];
-  if (!email) { showAlert('notes-alert','Select a student first.','error'); return; }
-  if (!text)  { showAlert('notes-alert','Enter a note title.','error'); return; }
-  let fileData = null, fileName = null, fileSize = null;
-  if (file) { fileData = await fileToBase64(file); fileName = file.name; fileSize = file.size; }
-  const res = await apiAddNote(email, text, fileData, fileName, fileSize);
-  showAlert('notes-alert', res.msg || 'Note uploaded!', 'success');
-  document.getElementById('notes-text').value = '';
-  document.getElementById('notes-file').value = '';
-  await loadStudentNotes();
-}
-
-async function deleteNote(email, index) {
-  if (!confirm('Delete this note?')) return;
-  await apiDeleteNote(email, index);
-  await loadStudentNotes();
-}
+function renderNotesSection() { updateTargetDropdown('notes'); }
 
 // ── Assignments ──
 function renderFacultyAssignments() {
-  document.getElementById('sec-assignments').innerHTML = `
-    <div class="page-head">
-      <div class="page-title">Assignments</div>
-      <div class="page-sub">Assign work to students</div>
-    </div>
-    <div class="card" style="max-width:560px">
-      <div class="card-title">📝 Add Assignment</div>
-      <div id="asgn-alert"></div>
-      ${studentSelector('asgn-student', 'loadStudentAssignments()')}
-      <div class="form-group">
-        <label>Assignment Title</label>
-        <input type="text" id="asgn-text" class="form-control" placeholder="e.g. Unit 3 Assignment">
-      </div>
-      <div class="form-group">
-        <label>Attach File (optional)</label>
-        <input type="file" id="asgn-file" class="form-control">
-      </div>
-      <button class="btn btn-primary" onclick="saveAssignment()">📤 Assign</button>
-    </div>
-    <div class="card" style="margin-top:1.25rem">
-      <div class="card-title">📋 Student Assignments</div>
-      <div id="asgn-list"><div class="empty">Select a student to view assignments.</div></div>
-    </div>`;
+  document.getElementById('sec-assignments').innerHTML =
+    contentUploadSection('assignments', '📝', 'Assignments');
 }
-
-async function loadStudentAssignments() {
-  const email = document.getElementById('asgn-student').value;
-  if (!email) return;
-  const data = await apiGetStudentData(email);
-  const asgn = data.assignments || [];
-  document.getElementById('asgn-list').innerHTML = asgn.length
-    ? `<div class="item-list">${asgn.map((a,i) => `
-        <div class="item-row">
-          <div class="item-row-left">
-            <span class="item-row-icon">${a.fileData?'📎':'📋'}</span>
-            <div>
-              <div class="item-row-text">${esc(a.text)}</div>
-              ${a.fileData?`<div style="font-size:.72rem;color:var(--muted)">${esc(a.fileName||'')} · ${fmtSize(a.fileSize||0)}</div>`:''}
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-            ${a.fileData?`<a href="${a.fileData}" download="${esc(a.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>`:''}
-            <button class="btn btn-danger btn-sm" onclick="deleteAssignment('${email}',${i})">🗑</button>
-          </div>
-        </div>`).join('')}</div>`
-    : `<div class="empty">No assignments for this student.</div>`;
-}
-
-async function saveAssignment() {
-  const email = document.getElementById('asgn-student').value;
-  const text  = document.getElementById('asgn-text').value.trim();
-  const file  = document.getElementById('asgn-file').files[0];
-  if (!email) { showAlert('asgn-alert','Select a student first.','error'); return; }
-  if (!text)  { showAlert('asgn-alert','Enter an assignment title.','error'); return; }
-  let fileData = null, fileName = null, fileSize = null;
-  if (file) { fileData = await fileToBase64(file); fileName = file.name; fileSize = file.size; }
-  const res = await apiAddAssignment(email, text, fileData, fileName, fileSize);
-  showAlert('asgn-alert', res.msg || 'Assignment added!', 'success');
-  document.getElementById('asgn-text').value = '';
-  document.getElementById('asgn-file').value = '';
-  await loadStudentAssignments();
-}
-
-async function deleteAssignment(email, index) {
-  if (!confirm('Delete this assignment?')) return;
-  await apiDeleteAssignment(email, index);
-  await loadStudentAssignments();
-}
+function renderAssignmentsSection() { updateTargetDropdown('assignments'); }
 
 // ── Lab Reports ──
 function renderFacultyLab() {
-  document.getElementById('sec-lab').innerHTML = `
-    <div class="page-head">
-      <div class="page-title">Lab Reports</div>
-      <div class="page-sub">Manage lab work for students</div>
-    </div>
-    <div class="card" style="max-width:560px">
-      <div class="card-title">🔬 Add Lab Report</div>
-      <div id="lab-alert"></div>
-      ${studentSelector('lab-student', 'loadStudentLab()')}
-      <div class="form-group">
-        <label>Lab Report Title</label>
-        <input type="text" id="lab-text" class="form-control" placeholder="e.g. Experiment 4">
-      </div>
-      <div class="form-group">
-        <label>Attach File (optional)</label>
-        <input type="file" id="lab-file" class="form-control">
-      </div>
-      <button class="btn btn-primary" onclick="saveLab()">📤 Add Lab Report</button>
-    </div>
-    <div class="card" style="margin-top:1.25rem">
-      <div class="card-title">📋 Student Lab Reports</div>
-      <div id="lab-list"><div class="empty">Select a student to view lab reports.</div></div>
-    </div>`;
+  document.getElementById('sec-lab').innerHTML =
+    contentUploadSection('lab', '🔬', 'Lab Reports');
 }
+function renderLabSection() { updateTargetDropdown('lab'); }
 
-async function loadStudentLab() {
-  const email = document.getElementById('lab-student').value;
-  if (!email) return;
-  const data = await apiGetStudentData(email);
-  const lab  = data.lab || [];
-  document.getElementById('lab-list').innerHTML = lab.length
-    ? `<div class="item-list">${lab.map((l,i) => `
-        <div class="item-row">
-          <div class="item-row-left">
-            <span class="item-row-icon">${l.fileData?'📎':'🧪'}</span>
-            <div>
-              <div class="item-row-text">${esc(l.text)}</div>
-              ${l.fileData?`<div style="font-size:.72rem;color:var(--muted)">${esc(l.fileName||'')} · ${fmtSize(l.fileSize||0)}</div>`:''}
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-            ${l.fileData?`<a href="${l.fileData}" download="${esc(l.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>`:''}
-            <button class="btn btn-danger btn-sm" onclick="deleteLab('${email}',${i})">🗑</button>
-          </div>
-        </div>`).join('')}</div>`
-    : `<div class="empty">No lab reports for this student.</div>`;
-}
-
-async function saveLab() {
-  const email = document.getElementById('lab-student').value;
-  const text  = document.getElementById('lab-text').value.trim();
-  const file  = document.getElementById('lab-file').files[0];
-  if (!email) { showAlert('lab-alert','Select a student first.','error'); return; }
-  if (!text)  { showAlert('lab-alert','Enter a lab report title.','error'); return; }
-  let fileData = null, fileName = null, fileSize = null;
-  if (file) { fileData = await fileToBase64(file); fileName = file.name; fileSize = file.size; }
-  const res = await apiAddLab(email, text, fileData, fileName, fileSize);
-  showAlert('lab-alert', res.msg || 'Lab report added!', 'success');
-  document.getElementById('lab-text').value = '';
-  document.getElementById('lab-file').value = '';
-  await loadStudentLab();
-}
-
-async function deleteLab(email, index) {
-  if (!confirm('Delete this lab report?')) return;
-  await apiDeleteLab(email, index);
-  await loadStudentLab();
+// ── Add Student ──
+function renderFacultyStudentAdd() {
+  // Not a separate section — handled inline in students section
 }

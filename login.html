@@ -46,14 +46,18 @@
         </div>
         <div class="form-group">
           <label for="l-pass">Password</label>
-          <input type="password" id="l-pass" class="form-control" placeholder="Enter your password" required>
+          <div style="position:relative">
+            <input type="password" id="l-pass" class="form-control" placeholder="Enter your password" required style="padding-right:2.5rem">
+            <button type="button" onclick="togglePassVis('l-pass',this)"
+              style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem">👁</button>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block" style="margin-top:.25rem">Sign In</button>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:.5rem">Sign In</button>
       </form>
 
-      <div class="auth-switch" style="margin-top:1.5rem;text-align:center;font-size:.875rem;color:var(--muted)">
-        Your account is created by your college administrator.<br>
-        Contact your admin if you don't have access.
+      <div class="auth-switch" style="margin-top:1.25rem;text-align:center;font-size:.85rem;color:var(--muted)">
+        Your account is created by your administrator.<br>
+        Contact your admin if you need access.
       </div>
     </div>
   </div>
@@ -76,6 +80,11 @@
 <script src="js/utils.js"></script>
 <script src="js/auth.js"></script>
 <script>
+  function togglePassVis(id, btn) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  }
   document.addEventListener('DOMContentLoaded', function() {
     initLogin();
     initHam();

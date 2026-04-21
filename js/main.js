@@ -6,8 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const user    = SS.get('ss_current_user');
   const token   = sessionStorage.getItem('ss_token');
-  const dashBtn = document.getElementById('dash-btn');
+  const dashBtn  = document.getElementById('dash-btn');
   const loginBtn = document.getElementById('nav-login');
+  const regBtn   = document.getElementById('nav-reg');
   const navRight = document.getElementById('nav-right');
 
   if (user && token) {
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dashBtn.href = { student:'student.html', faculty:'faculty.html', admin:'admin.html' }[user.role] || 'login.html';
     }
     if (loginBtn) loginBtn.style.display = 'none';
+    if (regBtn)   regBtn.style.display   = 'none';
     if (navRight) {
       navRight.innerHTML = `
         <div class="nav-user-info">
