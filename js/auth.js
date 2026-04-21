@@ -52,7 +52,58 @@ function initLogin() {
   });
 }
 
-// ── Register page — disabled, redirects to login ──
+// ── Register page ──
 function initRegister() {
-  window.location.replace('login.html');
+
+  const form = document.getElementById('reg-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const name = document.getElementById('r-name').value.trim();
+    const email = document.getElementById('r-email').value.trim();
+    const password = document.getElementById('r-pass').value;
+    const confirm = document.getElementById('r-conf').value;
+    const role = document.getElementById('r-role').value;
+    const semester = document.getElementById('r-semester').value;
+
+    if (password !== confirm) {
+      showAlert('auth-alert', 'Passwords do not match', 'error');
+      return;
+    }
+
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+
+    try {
+      const res = await fetch(API + '/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role, semester })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showAlert('auth-alert', data.msg || 'Registration failed', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+        return;
+      }
+
+      showAlert('auth-alert', 'Account created successfully! Redirecting...', 'success');
+
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1200);
+
+    } catch (err) {
+      showAlert('auth-alert', 'Server error. Try again later.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  });
+
 }

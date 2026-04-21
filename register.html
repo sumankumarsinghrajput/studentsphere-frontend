@@ -3,10 +3,144 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — Student Sphere</title>
-  <link rel="icon" type="image/x-icon" href="css/logo.png">
+  <title>Create Account — Student Sphere</title>
+  <link rel="icon" href="css/logo.png">
   <link rel="stylesheet" href="css/style.css">
-  <script>window.location.replace('login.html');</script>
 </head>
-<body></body>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="css/logo.png" class="nav-brand-icon">
+    <span class="nav-brand-name">Student <em>Sphere</em></span>
+  </a>
+
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="about-dev.html">About</a>
+  </div>
+
+  <div class="nav-right">
+    <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+  </div>
+
+  <button class="hamburger" id="ham-btn">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="nav-drawer" id="nav-drawer">
+  <a href="index.html">Home</a>
+  <a href="about-dev.html">About</a>
+  <a href="login.html">Sign In</a>
+</div>
+
+<!-- MAIN -->
+<div class="pt-nav">
+
+  <div class="auth-page">
+    <div class="auth-box">
+
+      <!-- LOGO -->
+      <div class="auth-logo">
+        <img src="css/logo.png" class="auth-logo-icon">
+        <span class="auth-logo-name">Student <em>Sphere</em></span>
+      </div>
+
+      <h2>Create Account</h2>
+      <p class="sub">Join as a student or faculty member</p>
+
+      <div id="auth-alert"></div>
+
+      <!-- FORM -->
+      <form id="reg-form">
+
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="r-name" class="form-control" placeholder="Your full name" required>
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="r-email" class="form-control" placeholder="you@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label>Role</label>
+          <select id="r-role" class="form-control">
+            <option value="student">Student</option>
+            <option value="faculty">Faculty</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Semester</label>
+          <select id="r-semester" class="form-control">
+            <option value="">Select semester</option>
+            <option>Semester 1</option>
+            <option>Semester 2</option>
+            <option>Semester 3</option>
+            <option>Semester 4</option>
+            <option>Semester 5</option>
+            <option>Semester 6</option>
+            <option>Semester 7</option>
+            <option>Semester 8</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="r-pass" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="r-conf" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Create Account →
+        </button>
+
+      </form>
+
+      <div class="auth-switch">
+        Already have an account? <a href="login.html">Sign in</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 <span>Student Sphere</span></p>
+  </footer>
+
+</div>
+
+<!-- EASTER EGG -->
+<div class="egg-overlay" id="egg-overlay">
+  <div class="egg-box">
+    <img src="css/logo.png" class="egg-icon">
+    <h2>Student <span>Sphere</span></h2>
+    <p>Designed & Developed by</p>
+    <div class="egg-dev">Suman Kumar Singh</div>
+    <button class="btn btn-primary" id="egg-close">Close</button>
+  </div>
+</div>
+
+<!-- JS -->
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initRegister();
+    initHam();
+    initEasterEgg();
+  });
+</script>
+
+</body>
 </html>
