@@ -237,17 +237,31 @@ function itemRow(icon, item) {
 
 function itemRowWithDownload(icon, item) {
   const hasFile = !!(item.fileData);
+
   return `<div class="item-row">
+    
     <div class="item-row-left">
-      <span class="item-row-icon">${hasFile?'📎':icon}</span>
+      <span class="item-row-icon">${hasFile ? '📎' : icon}</span>
+      
       <div style="min-width:0">
-        <div class="item-row-text">${esc(item.text||item)}</div>
-        ${hasFile?`<div style="font-size:.72rem;color:var(--muted)">${esc(item.fileName||'')} · ${fmtSize(item.fileSize||0)}</div>`:''}
+        <div class="item-row-text">${esc(item.text || item)}</div>
+        
+        ${hasFile ? `
+          <div style="font-size:.72rem;color:var(--muted)">
+            ${esc(item.fileName || '')} · ${fmtSize(item.fileSize || 0)}
+          </div>
+        ` : ''}
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-      ${hasFile?`<a href="${item.fileData}" download="${esc(item.fileName||'file')}" class="btn btn-outline btn-sm">⬇ Download</a>`:''}
-      <span class="item-row-date">${item.date?fmtDate(item.date):''}</span>
+
+    <div class="item-row-right">
+      ${hasFile ? `
+        <button class="btn btn-outline btn-sm"
+          onclick="downloadFile('${item.fileData}', '${item.fileName}')">
+          Download
+        </button>
+      ` : ''}
     </div>
+
   </div>`;
 }
