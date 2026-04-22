@@ -7,23 +7,178 @@
   <link rel="icon" type="image/x-icon" href="css/logo.png">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    /* Wider card on large screens to use available space */
-    @media (min-width: 900px) {
-      .about-wrap { max-width: 900px; }
-      .about-card { padding: 3rem 3rem; }
-      .about-two-col {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.25rem;
-        text-align: left;
-        margin-bottom: 1.5rem;
-      }
-      .about-two-col .highlight-box { margin-bottom: 0; }
+    /* ── About page layout overrides ── */
+
+    /* Use full container width — override the narrow about-wrap */
+    .about-wrap {
+      max-width: 1100px !important;
+      padding: 3rem 2rem 4rem !important;
     }
-    @media (min-width: 1200px) {
-      .about-wrap { max-width: 1100px; }
+
+    /* Remove card style from outer wrap — use section cards instead */
+    .about-hero-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 3rem 2.5rem 2rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
     }
-    .about-two-col { margin-bottom: 1.5rem; }
+
+    /* Stats in hero */
+    .about-stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin: 2rem 0 0;
+    }
+
+    /* Two column grid for team + highlights */
+    .about-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Three column grid for architecture */
+    .about-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .about-section-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .about-section-card h3 {
+      font-family: var(--head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Team member rows */
+    .team-member {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .team-member:last-child { border-bottom: none; }
+    .team-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      border: 1px solid rgba(249,115,22,.2);
+      display: grid;
+      place-items: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      font-family: var(--head);
+    }
+    .team-name {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--white);
+      line-height: 1.3;
+    }
+    .team-role {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Feature list */
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.84rem;
+      color: var(--text);
+    }
+    .feature-item:last-child { border-bottom: none; }
+    .feature-check {
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Arch card */
+    .arch-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 1.25rem;
+      height: 100%;
+    }
+    .arch-icon {
+      font-size: 2rem;
+      margin-bottom: .75rem;
+      display: block;
+    }
+    .arch-title {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--white);
+      margin-bottom: .5rem;
+    }
+    .arch-badge {
+      display: inline-flex;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: .7rem;
+      font-weight: 700;
+      margin-bottom: .875rem;
+    }
+    .arch-desc {
+      font-size: .82rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .arch-desc strong { color: var(--text); font-weight: 600; }
+
+    /* CTA row */
+    .about-cta {
+      display: flex;
+      gap: .875rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .about-stats-row { grid-template-columns: repeat(2, 1fr); }
+      .about-grid-2    { grid-template-columns: 1fr; }
+      .about-grid-3    { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .about-wrap { padding: 1.5rem 1rem 3rem !important; }
+      .about-hero-card { padding: 2rem 1.25rem 1.5rem; }
+      .about-stats-row { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+      .about-grid-3    { grid-template-columns: 1fr; }
+      .about-section-card { padding: 1.1rem; }
+    }
   </style>
 </head>
 <body>
@@ -52,103 +207,169 @@
 
 <div class="pt-nav">
   <div class="about-wrap">
-    <div class="about-card">
 
+    <!-- ── HERO CARD ── -->
+    <div class="about-hero-card">
       <img src="css/logo.png" alt="Student Sphere Logo" class="about-logo">
-      <h1>Student Sphere</h1>
-      <div class="about-role">B.Tech Final Year Group Project · 2025–26</div>
-
-      <p class="about-desc">
-        Student Sphere is a full-stack academic management system built as a B.Tech final year project.
-        It connects students, faculty, and administrators — enabling real-time management of attendance,
-        marks, assignments, notes, and lab reports, backed by a live MongoDB cloud database with
-        JWT authentication and deployed on Netlify &amp; Render.
+      <h1 style="font-family:var(--head);font-size:2rem;font-weight:800;color:var(--white);letter-spacing:-.5px;margin-bottom:.25rem">
+        Student <span style="color:var(--accent)">Sphere</span>
+      </h1>
+      <div class="about-role">B.Tech Final Year Group Project &nbsp;·&nbsp; 2025–26</div>
+      <p class="about-desc" style="max-width:600px">
+        A full-stack academic management system connecting students, faculty, and administrators.
+        Real-time attendance, marks, assignments, notes &amp; lab reports — backed by MongoDB Atlas,
+        secured with JWT, and deployed live on Netlify &amp; Render.
       </p>
 
-      <div class="tag-cloud">
+      <!-- Tech Tags -->
+      <div class="tag-cloud" style="max-width:700px;margin:0 auto 1.5rem">
         <span class="tag">HTML5</span>
         <span class="tag">CSS3</span>
-        <span class="tag">Vanilla JavaScript</span>
+        <span class="tag">Vanilla JS</span>
         <span class="tag">Node.js</span>
         <span class="tag">Express.js</span>
         <span class="tag">MongoDB Atlas</span>
+        <span class="tag">Mongoose</span>
         <span class="tag">JWT Auth</span>
         <span class="tag">bcrypt</span>
         <span class="tag">REST API</span>
         <span class="tag">Netlify</span>
         <span class="tag">Render</span>
-        <span class="tag">Responsive Design</span>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;text-align:center">
-        <div class="stat-box">
+      <!-- Stats -->
+      <div class="about-stats-row">
+        <div class="stat-box" style="text-align:center">
           <div class="stat-val">3</div>
           <div class="stat-lbl">User Roles</div>
         </div>
-        <div class="stat-box">
+        <div class="stat-box" style="text-align:center">
           <div class="stat-val">20+</div>
           <div class="stat-lbl">Source Files</div>
         </div>
-        <div class="stat-box">
+        <div class="stat-box" style="text-align:center">
           <div class="stat-val">0</div>
           <div class="stat-lbl">Frameworks</div>
         </div>
-      </div>
-
-      <!-- Two column on desktop, stacked on mobile -->
-      <div class="about-two-col">
-        <div class="highlight-box">
-          <h4>👨‍💻 Meet the Team</h4>
-          <div class="hl-item"><span class="hl-check">✓</span> Suman Kumar Singh — Full Stack Developer</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Abhinav Anand — UI/UX Designer</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Aman Kumar Vikarn — Backend Developer</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Sachin Mandal — Database Management</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Suman Das — Testing &amp; QA</div>
-        </div>
-
-        <div class="highlight-box">
-          <h4>🚀 Project Highlights</h4>
-          <div class="hl-item"><span class="hl-check">✓</span> Role-based auth — Student, Faculty &amp; Admin</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Real MongoDB Atlas cloud database</div>
-          <div class="hl-item"><span class="hl-check">✓</span> JWT secured REST API — Node.js + Express</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Bulk attendance &amp; marks management</div>
-          <div class="hl-item"><span class="hl-check">✓</span> File uploads — notes, assignments, lab reports</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Dark &amp; Light theme with smooth toggle</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Fully responsive — mobile to desktop</div>
-          <div class="hl-item"><span class="hl-check">✓</span> Live deployed on Netlify + Render</div>
+        <div class="stat-box" style="text-align:center">
+          <div class="stat-val">5</div>
+          <div class="stat-lbl">Team Members</div>
         </div>
       </div>
+    </div>
 
-      <div class="highlight-box" style="margin-bottom:2rem;text-align:left">
-        <h4>🏗️ Tech Architecture</h4>
-        <div class="hl-item">
-          <span class="hl-check">✓</span>
-          <span><strong style="color:var(--white)">Frontend</strong> — Pure HTML5, CSS3, Vanilla JS · Hosted on Netlify (CDN)</span>
+    <!-- ── TEAM + HIGHLIGHTS ── -->
+    <div class="about-grid-2">
+
+      <!-- Team -->
+      <div class="about-section-card">
+        <h3>👨‍💻 Meet the Team</h3>
+
+        <div class="team-member">
+          <div class="team-avatar">SK</div>
+          <div>
+            <div class="team-name">Suman Kumar Singh</div>
+            <div class="team-role">Full Stack Developer</div>
+          </div>
         </div>
-        <div class="hl-item">
-          <span class="hl-check">✓</span>
-          <span><strong style="color:var(--white)">Backend</strong> — Node.js + Express 5 REST API · Hosted on Render</span>
+
+        <div class="team-member">
+          <div class="team-avatar">AA</div>
+          <div>
+            <div class="team-name">Abhinav Anand</div>
+            <div class="team-role">UI / UX Designer</div>
+          </div>
         </div>
-        <div class="hl-item">
-          <span class="hl-check">✓</span>
-          <span><strong style="color:var(--white)">Database</strong> — MongoDB Atlas cloud · Mongoose ODM</span>
+
+        <div class="team-member">
+          <div class="team-avatar">AK</div>
+          <div>
+            <div class="team-name">Aman Kumar Vikarn</div>
+            <div class="team-role">Backend Developer</div>
+          </div>
         </div>
-        <div class="hl-item">
-          <span class="hl-check">✓</span>
-          <span><strong style="color:var(--white)">Security</strong> — bcrypt password hashing · JWT tokens (7-day expiry)</span>
+
+        <div class="team-member">
+          <div class="team-avatar">SM</div>
+          <div>
+            <div class="team-name">Sachin Mandal</div>
+            <div class="team-role">Database Management</div>
+          </div>
         </div>
-        <div class="hl-item">
-          <span class="hl-check">✓</span>
-          <span><strong style="color:var(--white)">Access Control</strong> — Admin · Faculty · Student role-based permissions</span>
+
+        <div class="team-member">
+          <div class="team-avatar">SD</div>
+          <div>
+            <div class="team-name">Suman Das</div>
+            <div class="team-role">Testing &amp; QA</div>
+          </div>
         </div>
       </div>
 
-      <div style="display:flex;gap:.875rem;justify-content:center;flex-wrap:wrap">
-        <a href="index.html" class="btn btn-outline">← Back to Home</a>
-        <a href="login.html" class="btn btn-primary">Sign In →</a>
+      <!-- Highlights -->
+      <div class="about-section-card">
+        <h3>🚀 Project Highlights</h3>
+        <div class="feature-item"><span class="feature-check">✓</span> Role-based auth — Student, Faculty &amp; Admin</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Real MongoDB Atlas cloud database</div>
+        <div class="feature-item"><span class="feature-check">✓</span> JWT secured REST API on Node.js + Express</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Bulk attendance &amp; marks management</div>
+        <div class="feature-item"><span class="feature-check">✓</span> File uploads — notes, assignments, lab reports</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Semester-wise student promotion with undo</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Dark &amp; Light theme toggle</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Fully responsive — mobile to 4K</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Live deployed — Netlify + Render</div>
+        <div class="feature-item"><span class="feature-check">✓</span> Hidden easter egg 🥚</div>
       </div>
 
     </div>
+
+    <!-- ── TECH ARCHITECTURE ── -->
+    <div class="about-section-card" style="margin-bottom:1.25rem">
+      <h3>🏗️ Tech Architecture</h3>
+      <div class="about-grid-3" style="margin:0">
+
+        <div class="arch-card">
+          <span class="arch-icon">🌐</span>
+          <div class="arch-title">Frontend</div>
+          <span class="arch-badge badge-blue">Client Side</span>
+          <div class="arch-desc">
+            <strong>HTML5, CSS3, Vanilla JavaScript</strong><br>
+            No frameworks used. Custom responsive design system with dark/light themes.
+            Deployed on <strong>Netlify CDN</strong>.
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <span class="arch-icon">⚙️</span>
+          <div class="arch-title">Backend</div>
+          <span class="arch-badge badge-violet">Server Side</span>
+          <div class="arch-desc">
+            <strong>Node.js + Express 5 REST API</strong><br>
+            JWT authentication, bcrypt password hashing, role-based access control.
+            Deployed on <strong>Render</strong>.
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <span class="arch-icon">🗄️</span>
+          <div class="arch-title">Database</div>
+          <span class="arch-badge badge-green">Cloud DB</span>
+          <div class="arch-desc">
+            <strong>MongoDB Atlas + Mongoose ODM</strong><br>
+            Cloud-hosted NoSQL database. Direct connection string for
+            reliable ISP compatibility. Stores users, attendance, marks, files.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── CTA ── -->
+    <div class="about-cta">
+      <a href="index.html" class="btn btn-outline">← Back to Home</a>
+      <a href="login.html" class="btn btn-primary">Sign In →</a>
+    </div>
+
   </div>
 
   <footer>
