@@ -3,9 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About Us — Student Sphere</title>
+  <title>About — Student Sphere</title>
   <link rel="icon" type="image/x-icon" href="css/logo.png">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Wider card on large screens to use available space */
+    @media (min-width: 900px) {
+      .about-wrap { max-width: 900px; }
+      .about-card { padding: 3rem 3rem; }
+      .about-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        text-align: left;
+        margin-bottom: 1.5rem;
+      }
+      .about-two-col .highlight-box { margin-bottom: 0; }
+    }
+    @media (min-width: 1200px) {
+      .about-wrap { max-width: 1100px; }
+    }
+    .about-two-col { margin-bottom: 1.5rem; }
+  </style>
 </head>
 <body>
 
@@ -36,34 +55,29 @@
     <div class="about-card">
 
       <img src="css/logo.png" alt="Student Sphere Logo" class="about-logo">
-      <h1>Student Sphere Team</h1>
-      <div class="about-role">Group Project · B.Tech Final Year</div>
+      <h1>Student Sphere</h1>
+      <div class="about-role">B.Tech Final Year Group Project · 2025–26</div>
 
       <p class="about-desc">
-        Student Sphere is an academic management system developed by a team of B.Tech students as part of a final-year project. 
-        It is designed to manage students, faculty, attendance, marks, and study resources efficiently using a clean and responsive interface built with HTML, CSS, and JavaScript.
+        Student Sphere is a full-stack academic management system built as a B.Tech final year project.
+        It connects students, faculty, and administrators — enabling real-time management of attendance,
+        marks, assignments, notes, and lab reports, backed by a live MongoDB cloud database with
+        JWT authentication and deployed on Netlify &amp; Render.
       </p>
-
-      <!-- TEAM MEMBERS -->
-      <div class="highlight-box">
-        <h4>👨‍💻 Meet the Team</h4>
-
-        <div class="hl-item"><span class="hl-check">✓</span> Suman Kumar Singh — Full Stack Developer</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Abhinav Anand — UI/UX Designer</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Aman Kumar Vikarn — Backend Developer</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Sachin Mandal — Database Management</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Suman Das — Testing & Support</div>
-      </div>
 
       <div class="tag-cloud">
         <span class="tag">HTML5</span>
         <span class="tag">CSS3</span>
         <span class="tag">Vanilla JavaScript</span>
-        <span class="tag">localStorage API</span>
-        <span class="tag">Role-based Auth</span>
+        <span class="tag">Node.js</span>
+        <span class="tag">Express.js</span>
+        <span class="tag">MongoDB Atlas</span>
+        <span class="tag">JWT Auth</span>
+        <span class="tag">bcrypt</span>
+        <span class="tag">REST API</span>
+        <span class="tag">Netlify</span>
+        <span class="tag">Render</span>
         <span class="tag">Responsive Design</span>
-        <span class="tag">UI / UX</span>
-        <span class="tag">Academic ERP</span>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;text-align:center">
@@ -72,36 +86,73 @@
           <div class="stat-lbl">User Roles</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val">14</div>
+          <div class="stat-val">20+</div>
           <div class="stat-lbl">Source Files</div>
         </div>
         <div class="stat-box">
           <div class="stat-val">0</div>
-          <div class="stat-lbl">Frameworks Used</div>
+          <div class="stat-lbl">Frameworks</div>
         </div>
       </div>
 
-      <div class="highlight-box">
-        <h4>🚀 Project Highlights</h4>
-        <div class="hl-item"><span class="hl-check">✓</span> Role-based authentication — Student, Faculty & Admin</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Persistent data using browser localStorage</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Faculty can manage attendance, marks & study materials</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Admin has full control over user management</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Hidden easter egg feature</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Fully responsive design</div>
-        <div class="hl-item"><span class="hl-check">✓</span> Built using pure HTML, CSS, JavaScript</div>
+      <!-- Two column on desktop, stacked on mobile -->
+      <div class="about-two-col">
+        <div class="highlight-box">
+          <h4>👨‍💻 Meet the Team</h4>
+          <div class="hl-item"><span class="hl-check">✓</span> Suman Kumar Singh — Full Stack Developer</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Abhinav Anand — UI/UX Designer</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Aman Kumar Vikarn — Backend Developer</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Sachin Mandal — Database Management</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Suman Das — Testing &amp; QA</div>
+        </div>
+
+        <div class="highlight-box">
+          <h4>🚀 Project Highlights</h4>
+          <div class="hl-item"><span class="hl-check">✓</span> Role-based auth — Student, Faculty &amp; Admin</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Real MongoDB Atlas cloud database</div>
+          <div class="hl-item"><span class="hl-check">✓</span> JWT secured REST API — Node.js + Express</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Bulk attendance &amp; marks management</div>
+          <div class="hl-item"><span class="hl-check">✓</span> File uploads — notes, assignments, lab reports</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Dark &amp; Light theme with smooth toggle</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Fully responsive — mobile to desktop</div>
+          <div class="hl-item"><span class="hl-check">✓</span> Live deployed on Netlify + Render</div>
+        </div>
+      </div>
+
+      <div class="highlight-box" style="margin-bottom:2rem;text-align:left">
+        <h4>🏗️ Tech Architecture</h4>
+        <div class="hl-item">
+          <span class="hl-check">✓</span>
+          <span><strong style="color:var(--white)">Frontend</strong> — Pure HTML5, CSS3, Vanilla JS · Hosted on Netlify (CDN)</span>
+        </div>
+        <div class="hl-item">
+          <span class="hl-check">✓</span>
+          <span><strong style="color:var(--white)">Backend</strong> — Node.js + Express 5 REST API · Hosted on Render</span>
+        </div>
+        <div class="hl-item">
+          <span class="hl-check">✓</span>
+          <span><strong style="color:var(--white)">Database</strong> — MongoDB Atlas cloud · Mongoose ODM</span>
+        </div>
+        <div class="hl-item">
+          <span class="hl-check">✓</span>
+          <span><strong style="color:var(--white)">Security</strong> — bcrypt password hashing · JWT tokens (7-day expiry)</span>
+        </div>
+        <div class="hl-item">
+          <span class="hl-check">✓</span>
+          <span><strong style="color:var(--white)">Access Control</strong> — Admin · Faculty · Student role-based permissions</span>
+        </div>
       </div>
 
       <div style="display:flex;gap:.875rem;justify-content:center;flex-wrap:wrap">
         <a href="index.html" class="btn btn-outline">← Back to Home</a>
-        <a href="register.html" class="btn btn-primary">Try the App →</a>
+        <a href="login.html" class="btn btn-primary">Sign In →</a>
       </div>
 
     </div>
   </div>
 
   <footer>
-    <p>© 2024 <span>Student Sphere</span> · Designed & Developed by Student Sphere Team</p>
+    <p>© 2025 <span>Student Sphere</span> · Designed &amp; Developed by Student Sphere Team</p>
   </footer>
 </div>
 
@@ -109,7 +160,7 @@
   <div class="egg-box">
     <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
     <h2>Student <span>Sphere</span></h2>
-    <p>Designed & Developed by</p>
+    <p>Designed &amp; Developed by</p>
     <div class="egg-dev">Suman Kumar Singh</div>
     <button class="btn btn-primary" id="egg-close">Close</button>
   </div>

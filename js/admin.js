@@ -1,10 +1,13 @@
 // ────────────────────────────────────────────
-// admin.js — Admin dashboard (matches original UI)
+// admin.js — Admin dashboard
 // ────────────────────────────────────────────
 
 let _adminAllUsers = [];
 let _adminStudents = [];
 let _adminFaculty  = [];
+
+// Undo stack for semester promotions: [{userId, name, oldSem, newSem}]
+let _undoStack = [];
 
 async function initAdmin() {
   const user = requireRole('admin');
@@ -35,7 +38,6 @@ async function refreshAdminData(user) {
 
 // ── Overview ──
 function renderAdminOverview(user) {
-  // Count content stats from student data (approximate from user count)
   const sems = [...new Set(_adminStudents.map(s => s.semester).filter(Boolean))];
 
   document.getElementById('sec-overview').innerHTML = `
@@ -96,7 +98,6 @@ function renderAdminOverview(user) {
       </div>
     </div>`;
 
-  // Load content stats async
   loadAdminContentStats();
 }
 
@@ -118,20 +119,19 @@ async function loadAdminContentStats() {
   set('stat-att',   att);
 }
 
-// ── Students — grouped by semester with attendance/marks badges ──
+// ── Students — grouped by semester with Promote button ──
 async function renderAdminStudents() {
-  // Fetch all student data for badges
   const dataMap = {};
   const dataArr = await Promise.all(_adminStudents.map(s => apiGetStudentData(s.email)));
   _adminStudents.forEach((s, i) => { dataMap[s.email] = dataArr[i]; });
 
-  const sems = ['Semester 1','Semester 2','Semester 3','Semester 4',
+  const SEMS = ['Semester 1','Semester 2','Semester 3','Semester 4',
                 'Semester 5','Semester 6','Semester 7','Semester 8'];
 
-  const grouped = sems.map(sem => {
-    const sts = _adminStudents.filter(s => s.semester === sem);
-    return { sem, sts };
-  }).filter(g => g.sts.length > 0);
+  const grouped = SEMS.map(sem => ({
+    sem,
+    sts: _adminStudents.filter(s => s.semester === sem)
+  })).filter(g => g.sts.length > 0);
 
   const attBadge = v => v !== null && v !== undefined
     ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff;min-width:48px;text-align:center">${v}%</span>`
@@ -141,16 +141,37 @@ async function renderAdminStudents() {
     ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=60?'var(--amber)':'var(--rose)'};color:#fff;min-width:48px;text-align:center">${v}%</span>`
     : `<span class="badge badge-gray" style="min-width:48px;text-align:center">—</span>`;
 
+  // Undo bar — show if there are undo-able actions
+  const undoBar = _undoStack.length > 0 ? `
+    <div style="background:var(--amber-s);border:1px solid var(--amber);border-radius:var(--r-sm);padding:.75rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+      <div style="font-size:.875rem;color:var(--amber);font-weight:600">
+        ↩️ Last promotion: <strong>${_undoStack[_undoStack.length-1].count} students</strong>
+        moved from <strong>${_undoStack[_undoStack.length-1].from}</strong>
+        → <strong>${_undoStack[_undoStack.length-1].to}</strong>
+      </div>
+      <button class="btn btn-sm" style="background:var(--amber);color:#000;font-weight:700" onclick="undoLastPromotion()">
+        ↩ Undo Promotion
+      </button>
+    </div>` : '';
+
   document.getElementById('sec-students').innerHTML = `
     <div class="page-head">
       <div class="page-title">👨‍🎓 Students</div>
       <div class="page-sub">All registered students grouped by semester</div>
     </div>
-    ${grouped.length ? grouped.map(g => `
+    ${undoBar}
+    ${grouped.length ? grouped.map(g => {
+      const nextSemIdx = SEMS.indexOf(g.sem) + 1;
+      const nextSem = nextSemIdx < SEMS.length ? SEMS[nextSemIdx] : null;
+      return `
       <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-title">
-          📚 ${g.sem}
-          <span class="badge badge-blue" style="margin-left:.5rem">${g.sts.length} students</span>
+        <div class="card-title" style="justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+          <span>📚 ${g.sem} <span class="badge badge-blue" style="margin-left:.5rem">${g.sts.length} students</span></span>
+          ${nextSem ? `
+            <button class="btn btn-sm btn-success" onclick="promoteAll('${esc(g.sem)}','${esc(nextSem)}',${g.sts.length})">
+              ⬆ Promote All → ${nextSem}
+            </button>` : `
+            <span class="badge badge-gray" style="font-size:.75rem;padding:4px 10px">Final Semester</span>`}
         </div>
         <div class="table-wrap">
           <table>
@@ -164,19 +185,79 @@ async function renderAdminStudents() {
                 return `<tr>
                   <td>${idx+1}</td>
                   <td><strong>${esc(s.name)}</strong></td>
-                  <td style="color:var(--muted);font-size:.82rem">${esc(s.email)}</td>
+                  <td style="color:var(--muted);font-size:.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.email)}</td>
                   <td>${attBadge(d.attendance)}</td>
                   <td>${mksBadge(d.marks)}</td>
                   <td style="font-size:.82rem;color:var(--muted)">${s.createdAt ? fmtDate(s.createdAt) : '—'}</td>
                   <td>
-                    <div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminEditSem('${s._id}','${esc(s.name)}','${esc(s.semester||'')}')">✏️ Sem</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${s._id}','${esc(s.name)}')">Delete</button></div>
+                    <div class="tbl-actions">
+                      <button class="btn btn-outline btn-sm" onclick="adminEditSem('${s._id}','${esc(s.name)}','${esc(s.semester||'')}')">✏️ Sem</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteUser('${s._id}','${esc(s.name)}')">Delete</button>
+                    </div>
                   </td>
                 </tr>`;
               }).join('')}
             </tbody>
           </table>
         </div>
-      </div>`).join('') : `<div class="card"><div class="empty"><span class="empty-ico">👨‍🎓</span>No students registered yet.</div></div>`}`;
+      </div>`;
+    }).join('') : `<div class="card"><div class="empty"><span class="empty-ico">👨‍🎓</span>No students registered yet.</div></div>`}`;
+}
+
+// ── Promote all students in a semester ──
+async function promoteAll(fromSem, toSem, count) {
+  if (!confirm(`Promote all ${count} students from ${fromSem} → ${toSem}?\n\nYou can undo this immediately after.`)) return;
+
+  const students = _adminStudents.filter(s => s.semester === fromSem);
+  if (!students.length) { toast('No students to promote.', 'error'); return; }
+
+  // Show loading toast
+  toast(`Promoting ${students.length} students…`, 'info');
+
+  const results = await Promise.all(students.map(s =>
+    fetch('https://studentsphere-backend-g4wj.onrender.com/api/users/' + s._id + '/semester', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionStorage.getItem('ss_token') },
+      body: JSON.stringify({ semester: toSem })
+    }).then(r => r.json())
+  ));
+
+  const succeeded = results.filter(r => r.msg === 'Semester updated').length;
+
+  // Push to undo stack
+  _undoStack.push({
+    from:     fromSem,
+    to:       toSem,
+    count:    succeeded,
+    students: students.map(s => s._id)
+  });
+
+  toast(`✅ Promoted ${succeeded} students to ${toSem}!`, 'success');
+  await refreshAdminData();
+}
+
+// ── Undo last promotion ──
+async function undoLastPromotion() {
+  const last = _undoStack.pop();
+  if (!last) { toast('Nothing to undo.', 'error'); return; }
+
+  if (!confirm(`Undo promotion? Move ${last.count} students back from ${last.to} → ${last.from}?`)) {
+    _undoStack.push(last); // put it back
+    return;
+  }
+
+  toast(`Undoing…`, 'info');
+
+  await Promise.all(last.students.map(id =>
+    fetch('https://studentsphere-backend-g4wj.onrender.com/api/users/' + id + '/semester', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionStorage.getItem('ss_token') },
+      body: JSON.stringify({ semester: last.from })
+    })
+  ));
+
+  toast(`↩ Undone! Students moved back to ${last.from}.`, 'success');
+  await refreshAdminData();
 }
 
 // ── Faculty ──
@@ -202,7 +283,10 @@ function renderAdminFaculty() {
                   <td><span class="badge badge-violet">${esc(f.semester||'—')}</span></td>
                   <td style="font-size:.82rem;color:var(--muted)">${f.createdAt ? fmtDate(f.createdAt) : '—'}</td>
                   <td>
-                    <div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminEditSem('${f._id}','${esc(f.name)}','${esc(f.semester||'')}')">✏️ Sem</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${f._id}','${esc(f.name)}')">Delete</button></div>
+                    <div class="tbl-actions">
+                      <button class="btn btn-outline btn-sm" onclick="adminEditSem('${f._id}','${esc(f.name)}','${esc(f.semester||'')}')">✏️ Sem</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteUser('${f._id}','${esc(f.name)}')">Delete</button>
+                    </div>
                   </td>
                 </tr>`).join('')}
             </tbody>
@@ -229,13 +313,16 @@ function renderAdminAllUsers() {
               <tr>
                 <td>${idx+1}</td>
                 <td><strong>${esc(u.name)}</strong></td>
-                <td style="color:var(--muted);font-size:.82rem">${esc(u.email)}</td>
+                <td style="color:var(--muted);font-size:.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email)}</td>
                 <td><span class="role-tag role-${u.role}">${u.role}</span></td>
                 <td>${esc(u.semester||'—')}</td>
                 <td style="font-size:.82rem;color:var(--muted)">${u.createdAt ? fmtDate(u.createdAt) : '—'}</td>
                 <td>
                   ${u.role !== 'admin'
-                    ? `<div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminEditSem('${u._id}','${esc(u.name)}','${esc(u.semester||'')}')">✏️ Sem</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}','${esc(u.name)}')">Delete</button></div>`
+                    ? `<div class="tbl-actions">
+                        <button class="btn btn-outline btn-sm" onclick="adminEditSem('${u._id}','${esc(u.name)}','${esc(u.semester||'')}')">✏️ Sem</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}','${esc(u.name)}')">Delete</button>
+                       </div>`
                     : `<span class="badge badge-gray">Protected</span>`}
                 </td>
               </tr>`).join('')}
@@ -325,26 +412,25 @@ async function submitAddUser() {
   btn.disabled = false; btn.textContent = '➕ Create Account';
 }
 
-// ── Edit Semester ──
+// ── Edit Semester (individual) ──
 async function adminEditSem(id, name, currentSem) {
   const sems = ['Semester 1','Semester 2','Semester 3','Semester 4',
                 'Semester 5','Semester 6','Semester 7','Semester 8'];
   const newSem = prompt(
-    `Change semester for ${name}:\n\n${sems.map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\nCurrent: ${currentSem||'None'}\nType the semester name exactly:`,
+    `Change semester for ${name}:\n\n${sems.map((s,i) => `${i+1}. ${s}`).join('\n')}\n\nCurrent: ${currentSem||'None'}\nType the semester name exactly:`,
     currentSem || ''
   );
   if (!newSem || !sems.includes(newSem)) {
-    if (newSem !== null) alert('Invalid semester. Please type exactly e.g. "Semester 3"');
+    if (newSem !== null) alert('Invalid semester. Type exactly e.g. "Semester 3"');
     return;
   }
-  // Use update endpoint
   try {
     const res = await fetch('https://studentsphere-backend-g4wj.onrender.com/api/users/' + id + '/semester', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionStorage.getItem('ss_token') },
       body: JSON.stringify({ semester: newSem })
     });
-    const data = await res.json();
+    await res.json();
     toast(`${name} moved to ${newSem}`, 'success');
     await refreshAdminData();
   } catch (e) {
