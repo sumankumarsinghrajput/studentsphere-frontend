@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────
-// faculty.js — Faculty dashboard (matches original UI)
+// faculty.js — Faculty dashboard
 // ────────────────────────────────────────────
 
 let _facultyStudents = [];
@@ -28,7 +28,7 @@ async function initFaculty() {
   renderFacultyLab();
 }
 
-// ── Semester selector bar (shared across sections) ──
+// ── Semester selector bar ──
 function semBar(id, onchange, selected) {
   const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
   const val = selected || _currentSem || (sems[0] || '');
@@ -58,7 +58,6 @@ function semStudents(sem) {
 // ── Overview ──
 function renderFacultyOverview(user) {
   const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
-  const totalAtt = _facultyStudents.filter(s => s._attSet).length;
 
   document.getElementById('sec-overview').innerHTML = `
     <div class="page-head">
@@ -71,17 +70,17 @@ function renderFacultyOverview(user) {
         <div class="stat-lbl">Total Students</div>
         <span class="stat-bg-icon">👨‍🎓</span>
       </div>
-      <div class="stat-box" id="ov-att-box">
+      <div class="stat-box">
         <div class="stat-val" id="ov-att">—</div>
         <div class="stat-lbl">Attendance Updated</div>
         <span class="stat-bg-icon">📅</span>
       </div>
-      <div class="stat-box" id="ov-marks-box">
+      <div class="stat-box">
         <div class="stat-val" id="ov-marks">—</div>
         <div class="stat-lbl">Marks Updated</div>
         <span class="stat-bg-icon">📊</span>
       </div>
-      <div class="stat-box" id="ov-notes-box">
+      <div class="stat-box">
         <div class="stat-val" id="ov-notes">—</div>
         <div class="stat-lbl">Notes Uploaded</div>
         <span class="stat-bg-icon">📓</span>
@@ -94,15 +93,15 @@ function renderFacultyOverview(user) {
           <thead><tr>
             <th>Semester</th><th>Students</th><th>Attendance Set</th><th>Action</th>
           </tr></thead>
-          <tbody id="sem-overview-body">
+          <tbody>
             ${sems.map(sem => {
               const sts = semStudents(sem);
               return `<tr>
                 <td><strong>${esc(sem)}</strong></td>
                 <td><span class="badge badge-blue">${sts.length}</span></td>
-                <td id="att-set-${sem.replace(' ','-')}">Loading…</td>
+                <td id="att-set-${sem.replace(/ /g,'-')}">—</td>
                 <td><button class="btn btn-primary btn-sm"
-                  onclick="switchSec('students');document.getElementById('fac-sem-students').value='${esc(sem)}';loadFacStudents()">
+                  onclick="switchSec('students');setTimeout(()=>{const el=document.getElementById('fac-sem-students');if(el){el.value='${esc(sem)}';loadFacStudents();}},50)">
                   Manage →</button></td>
               </tr>`;
             }).join('')}
@@ -111,7 +110,6 @@ function renderFacultyOverview(user) {
       </div>
     </div>`;
 
-  // Load stats async
   loadOverviewStats(sems);
 }
 
@@ -124,25 +122,22 @@ async function loadOverviewStats(sems) {
     if (d.marks !== null && d.marks !== undefined) marksCount++;
     notesCount += (d.notes||[]).length;
   });
-
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set('ov-att',   attCount);
+  set('ov-att', attCount);
   set('ov-marks', marksCount);
   set('ov-notes', notesCount);
-
-  // Update semester attendance set counts
   sems.forEach(sem => {
     const sts = semStudents(sem);
-    const setCount = sts.filter((s, i) => {
+    const setCount = sts.filter(s => {
       const idx = _facultyStudents.indexOf(s);
       return dataArr[idx] && dataArr[idx].attendance !== null && dataArr[idx].attendance !== undefined;
     }).length;
-    const el = document.getElementById('att-set-' + sem.replace(' ','-'));
+    const el = document.getElementById('att-set-' + sem.replace(/ /g,'-'));
     if (el) el.innerHTML = `<span style="color:var(--muted)">${setCount}/${sts.length}</span>`;
   });
 }
 
-// ── Students ──
+// ── Students — inline edit (no popups) ──
 function renderFacultyStudents() {
   const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
   const initSem = _currentSem || sems[0] || '';
@@ -170,44 +165,99 @@ async function loadFacStudents() {
   const attBadge = v => v !== null && v !== undefined
     ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff">${v}%</span>`
     : `<span class="badge badge-gray">—</span>`;
-  const mksBadge = v => v !== null && v !== undefined
-    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff">${v}%</span>`
-    : `<span class="badge badge-gray">—</span>`;
 
   el.innerHTML = `
     <div class="card">
+      <div class="card-title">👨‍🎓 ${esc(sem)} — ${sts.length} Students</div>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem">💡 Click <strong>Edit</strong> on any row to update attendance &amp; marks inline.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Attendance</th><th>Marks</th><th>Joined</th></tr></thead>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Email</th>
+            <th>Att %</th><th>Marks %</th><th>Action</th>
+          </tr></thead>
           <tbody>
             ${sts.map((s, i) => {
               const d = dataArr[i];
-              return `<tr style="cursor:pointer" onclick="quickEditStudent('${esc(s.email)}','${esc(s.name)}',${d.attendance??'null'},${d.marks??'null'})">
+              return `
+              <tr id="stu-row-${i}">
                 <td>${i+1}</td>
                 <td><strong>${esc(s.name)}</strong></td>
-                <td style="color:var(--muted);font-size:.82rem">${esc(s.email)}</td>
-                <td>${attBadge(d.attendance)}</td>
-                <td>${mksBadge(d.marks)}</td>
-                <td style="font-size:.82rem;color:var(--muted)">${s.createdAt?fmtDate(s.createdAt):'—'}</td>
+                <td style="color:var(--muted);font-size:.8rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.email)}</td>
+                <td id="stu-att-${i}">${attBadge(d.attendance)}</td>
+                <td id="stu-marks-${i}">${attBadge(d.marks)}</td>
+                <td>
+                  <button class="btn btn-outline btn-sm" id="stu-edit-btn-${i}"
+                    onclick="toggleStudentEdit(${i},'${esc(s.email)}',${d.attendance??'null'},${d.marks??'null'})">
+                    ✏️ Edit
+                  </button>
+                </td>
+              </tr>
+              <tr id="stu-edit-row-${i}" style="display:none">
+                <td colspan="6" style="padding:.75rem;background:var(--card2,var(--card));border-radius:var(--r-sm)">
+                  <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end">
+                    <div>
+                      <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:3px">Attendance %</label>
+                      <input type="number" id="stu-att-inp-${i}" class="form-control"
+                        min="0" max="100" value="${d.attendance??''}" placeholder="0–100"
+                        style="width:90px;padding:6px 8px">
+                    </div>
+                    <div>
+                      <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:3px">Marks %</label>
+                      <input type="number" id="stu-marks-inp-${i}" class="form-control"
+                        min="0" max="100" value="${d.marks??''}" placeholder="0–100"
+                        style="width:90px;padding:6px 8px">
+                    </div>
+                    <button class="btn btn-primary btn-sm"
+                      onclick="saveStudentEdit(${i},'${esc(s.email)}','${esc(s.name)}')">💾 Save</button>
+                    <button class="btn btn-outline btn-sm"
+                      onclick="closeStudentEdit(${i})">Cancel</button>
+                  </div>
+                </td>
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       </div>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:.75rem">💡 Click a student row to edit their attendance &amp; marks.</p>
     </div>`;
 }
 
-function quickEditStudent(email, name, att, marks) {
-  const newAtt   = prompt(`Edit attendance for ${name} (current: ${att??'not set'})\nEnter 0-100:`, att??'');
-  if (newAtt === null) return;
-  const newMarks = prompt(`Edit marks for ${name} (current: ${marks??'not set'})\nEnter 0-100:`, marks??'');
-  if (newMarks === null) return;
-  const a = parseInt(newAtt), m = parseInt(newMarks);
+function toggleStudentEdit(i, email, att, marks) {
+  // Close all other open rows first
+  document.querySelectorAll('[id^="stu-edit-row-"]').forEach((r, idx) => {
+    if (r.id !== `stu-edit-row-${i}`) {
+      r.style.display = 'none';
+      const num = r.id.replace('stu-edit-row-','');
+      const btn = document.getElementById(`stu-edit-btn-${num}`);
+      if (btn) btn.textContent = '✏️ Edit';
+    }
+  });
+  const editRow = document.getElementById(`stu-edit-row-${i}`);
+  const editBtn = document.getElementById(`stu-edit-btn-${i}`);
+  if (!editRow) return;
+  const isOpen = editRow.style.display !== 'none';
+  editRow.style.display = isOpen ? 'none' : 'table-row';
+  if (editBtn) editBtn.textContent = isOpen ? '✏️ Edit' : '✕ Close';
+}
+
+function closeStudentEdit(i) {
+  const editRow = document.getElementById(`stu-edit-row-${i}`);
+  const editBtn = document.getElementById(`stu-edit-btn-${i}`);
+  if (editRow) editRow.style.display = 'none';
+  if (editBtn) editBtn.textContent = '✏️ Edit';
+}
+
+async function saveStudentEdit(i, email, name) {
+  const a = parseInt(document.getElementById(`stu-att-inp-${i}`)?.value);
+  const m = parseInt(document.getElementById(`stu-marks-inp-${i}`)?.value);
   const promises = [];
   if (!isNaN(a) && a >= 0 && a <= 100) promises.push(apiUpdateAttendance(email, a));
   if (!isNaN(m) && m >= 0 && m <= 100) promises.push(apiUpdateMarks(email, m));
-  Promise.all(promises).then(() => { toast(`${name} updated!`, 'success'); loadFacStudents(); });
+  if (!promises.length) { toast('Enter at least one valid value (0–100).', 'error'); return; }
+  await Promise.all(promises);
+  toast(`${name} updated!`, 'success');
+  closeStudentEdit(i);
+  await loadFacStudents();
 }
 
 // ── Attendance ──
@@ -256,40 +306,65 @@ async function loadBulkAttendance() {
 
   const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
 
-  // Left: editable inputs
+  // Left: bulk editable inputs
   document.getElementById('att-bulk-body').innerHTML = sts.map((s, i) => {
     const cur = dataArr[i].attendance ?? '';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-weight:600;font-size:.875rem">${esc(s.name)}</div>
-        <div style="font-size:.72rem;color:var(--muted)">${esc(s.email)}</div>
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);gap:.5rem">
+      <div style="min-width:0;flex:1;overflow:hidden">
+        <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.name)}</div>
+        <div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.email)}</div>
       </div>
       <input type="number" class="form-control bulk-att-inp" data-email="${esc(s.email)}"
         min="0" max="100" value="${cur}" placeholder="0–100"
-        style="width:80px;padding:5px 8px;font-size:.875rem;flex-shrink:0">
+        style="width:75px;padding:5px 6px;font-size:.85rem;flex-shrink:0">
     </div>`;
   }).join('');
   document.getElementById('att-save-btn').style.display = 'block';
 
-  // Right: current records table
+  // Right: current records with inline edit (no popup)
   const attBadge = v => v !== null && v !== undefined
-    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff;min-width:44px;text-align:center">${v}%</span>`
-    : `<span class="badge badge-gray" style="min-width:44px">—</span>`;
+    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=50?'var(--amber)':'var(--rose)'};color:#fff;min-width:42px;text-align:center">${v}%</span>`
+    : `<span class="badge badge-gray" style="min-width:42px;text-align:center">—</span>`;
 
-  document.getElementById('att-current-records').innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Student</th><th>Email</th><th>Attendance %</th><th>Action</th></tr></thead>
-        <tbody>
-          ${sts.map((s,i) => `<tr>
-            <td><strong>${esc(s.name)}</strong></td>
-            <td style="font-size:.78rem;color:var(--muted)">${esc(s.email)}</td>
-            <td>${attBadge(dataArr[i].attendance)}</td>
-            <td><button class="btn btn-outline btn-sm" onclick="inlineEditAtt('${esc(s.email)}','${esc(s.name)}',${dataArr[i].attendance??'null'})">Edit</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+  document.getElementById('att-current-records').innerHTML = sts.map((s, i) => `
+    <div style="padding:.5rem 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:600;font-size:.85rem">${esc(s.name)}</div>
+          <div style="font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.email)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0" id="att-view-${i}">
+          ${attBadge(dataArr[i].attendance)}
+          <button class="btn btn-outline btn-sm" onclick="openAttEdit(${i})">Edit</button>
+        </div>
+        <div style="display:none;align-items:center;gap:.4rem;flex-shrink:0" id="att-edit-${i}">
+          <input type="number" id="att-inp-${i}" class="form-control" min="0" max="100"
+            value="${dataArr[i].attendance??''}" placeholder="0–100"
+            style="width:75px;padding:5px 6px;font-size:.85rem">
+          <button class="btn btn-primary btn-sm" onclick="saveAttRecord(${i},'${esc(s.email)}','${esc(s.name)}')">Save</button>
+          <button class="btn btn-outline btn-sm" onclick="closeAttEdit(${i})">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openAttEdit(i) {
+  // Close all others
+  document.querySelectorAll('[id^="att-view-"]').forEach(el => el.style.display = 'flex');
+  document.querySelectorAll('[id^="att-edit-"]').forEach(el => el.style.display = 'none');
+  document.getElementById(`att-view-${i}`).style.display = 'none';
+  document.getElementById(`att-edit-${i}`).style.display = 'flex';
+}
+function closeAttEdit(i) {
+  document.getElementById(`att-view-${i}`).style.display = 'flex';
+  document.getElementById(`att-edit-${i}`).style.display = 'none';
+}
+async function saveAttRecord(i, email, name) {
+  const v = parseInt(document.getElementById(`att-inp-${i}`)?.value);
+  if (isNaN(v) || v < 0 || v > 100) { toast('Enter 0–100.', 'error'); return; }
+  await apiUpdateAttendance(email, v);
+  toast(`${name} updated!`, 'success');
+  await loadBulkAttendance();
 }
 
 async function saveAllAttendance() {
@@ -305,19 +380,8 @@ async function saveAllAttendance() {
     if (res.msg === 'Attendance updated') saved++;
     else skipped++;
   }));
-  showAlert('att-bulk-alert', `✅ Saved ${saved}${skipped?` · ⚠️ ${skipped} skipped`:''}`, 'success');
+  showAlert('att-bulk-alert', `✅ Saved ${saved}${skipped ? ` · ⚠️ ${skipped} skipped` : ''}`, 'success');
   btn.disabled = false; btn.textContent = '💾 Save All';
-  // Refresh right panel
-  await loadBulkAttendance();
-}
-
-async function inlineEditAtt(email, name, cur) {
-  const val = prompt(`Edit attendance for ${name} (current: ${cur??'not set'})\nEnter 0–100:`, cur??'');
-  if (val === null) return;
-  const v = parseInt(val);
-  if (isNaN(v) || v < 0 || v > 100) { toast('Invalid value.', 'error'); return; }
-  await apiUpdateAttendance(email, v);
-  toast(`${name} attendance updated!`, 'success');
   await loadBulkAttendance();
 }
 
@@ -369,36 +433,60 @@ async function loadBulkMarks() {
 
   document.getElementById('marks-bulk-body').innerHTML = sts.map((s, i) => {
     const cur = dataArr[i].marks ?? '';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-weight:600;font-size:.875rem">${esc(s.name)}</div>
-        <div style="font-size:.72rem;color:var(--muted)">${esc(s.email)}</div>
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);gap:.5rem">
+      <div style="min-width:0;flex:1;overflow:hidden">
+        <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.name)}</div>
+        <div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.email)}</div>
       </div>
       <input type="number" class="form-control bulk-marks-inp" data-email="${esc(s.email)}"
         min="0" max="100" value="${cur}" placeholder="0–100"
-        style="width:80px;padding:5px 8px;font-size:.875rem;flex-shrink:0">
+        style="width:75px;padding:5px 6px;font-size:.85rem;flex-shrink:0">
     </div>`;
   }).join('');
   document.getElementById('marks-save-btn').style.display = 'block';
 
   const mksBadge = v => v !== null && v !== undefined
-    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=60?'var(--amber)':'var(--rose)'};color:#fff;min-width:44px;text-align:center">${v}%</span>`
-    : `<span class="badge badge-gray" style="min-width:44px">—</span>`;
+    ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=60?'var(--amber)':'var(--rose)'};color:#fff;min-width:42px;text-align:center">${v}%</span>`
+    : `<span class="badge badge-gray" style="min-width:42px;text-align:center">—</span>`;
 
-  document.getElementById('marks-current-records').innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Student</th><th>Email</th><th>Marks %</th><th>Action</th></tr></thead>
-        <tbody>
-          ${sts.map((s,i) => `<tr>
-            <td><strong>${esc(s.name)}</strong></td>
-            <td style="font-size:.78rem;color:var(--muted)">${esc(s.email)}</td>
-            <td>${mksBadge(dataArr[i].marks)}</td>
-            <td><button class="btn btn-outline btn-sm" onclick="inlineEditMarks('${esc(s.email)}','${esc(s.name)}',${dataArr[i].marks??'null'})">Edit</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+  document.getElementById('marks-current-records').innerHTML = sts.map((s, i) => `
+    <div style="padding:.5rem 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:600;font-size:.85rem">${esc(s.name)}</div>
+          <div style="font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.email)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0" id="marks-view-${i}">
+          ${mksBadge(dataArr[i].marks)}
+          <button class="btn btn-outline btn-sm" onclick="openMarksEdit(${i})">Edit</button>
+        </div>
+        <div style="display:none;align-items:center;gap:.4rem;flex-shrink:0" id="marks-edit-${i}">
+          <input type="number" id="marks-inp-${i}" class="form-control" min="0" max="100"
+            value="${dataArr[i].marks??''}" placeholder="0–100"
+            style="width:75px;padding:5px 6px;font-size:.85rem">
+          <button class="btn btn-primary btn-sm" onclick="saveMarksRecord(${i},'${esc(s.email)}','${esc(s.name)}')">Save</button>
+          <button class="btn btn-outline btn-sm" onclick="closeMarksEdit(${i})">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openMarksEdit(i) {
+  document.querySelectorAll('[id^="marks-view-"]').forEach(el => el.style.display = 'flex');
+  document.querySelectorAll('[id^="marks-edit-"]').forEach(el => el.style.display = 'none');
+  document.getElementById(`marks-view-${i}`).style.display = 'none';
+  document.getElementById(`marks-edit-${i}`).style.display = 'flex';
+}
+function closeMarksEdit(i) {
+  document.getElementById(`marks-view-${i}`).style.display = 'flex';
+  document.getElementById(`marks-edit-${i}`).style.display = 'none';
+}
+async function saveMarksRecord(i, email, name) {
+  const v = parseInt(document.getElementById(`marks-inp-${i}`)?.value);
+  if (isNaN(v) || v < 0 || v > 100) { toast('Enter 0–100.', 'error'); return; }
+  await apiUpdateMarks(email, v);
+  toast(`${name} updated!`, 'success');
+  await loadBulkMarks();
 }
 
 async function saveAllMarks() {
@@ -414,18 +502,8 @@ async function saveAllMarks() {
     if (res.msg === 'Marks updated') saved++;
     else skipped++;
   }));
-  showAlert('marks-bulk-alert', `✅ Saved ${saved}${skipped?` · ⚠️ ${skipped} skipped`:''}`, 'success');
+  showAlert('marks-bulk-alert', `✅ Saved ${saved}${skipped ? ` · ⚠️ ${skipped} skipped` : ''}`, 'success');
   btn.disabled = false; btn.textContent = '💾 Save All';
-  await loadBulkMarks();
-}
-
-async function inlineEditMarks(email, name, cur) {
-  const val = prompt(`Edit marks for ${name} (current: ${cur??'not set'})\nEnter 0–100:`, cur??'');
-  if (val === null) return;
-  const v = parseInt(val);
-  if (isNaN(v) || v < 0 || v > 100) { toast('Invalid value.', 'error'); return; }
-  await apiUpdateMarks(email, v);
-  toast(`${name} marks updated!`, 'success');
   await loadBulkMarks();
 }
 
@@ -434,7 +512,6 @@ function contentUploadSection(type, icon, label) {
   const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
   const initSem = _currentSem || sems[0] || '';
   const id = type;
-
   return `
     <div class="page-head">
       <div class="page-title">${icon} ${label}</div>
@@ -461,16 +538,18 @@ function contentUploadSection(type, icon, label) {
       </div>
       <div class="form-group">
         <label>Attach File <span style="color:var(--muted)">(optional)</span></label>
-        <div class="file-upload-area" id="${id}-drop" onclick="document.getElementById('${id}-file').click()"
+        <div class="file-upload-area" id="${id}-drop"
+          onclick="document.getElementById('${id}-file').click()"
           ondragover="event.preventDefault();this.classList.add('dragover')"
           ondragleave="this.classList.remove('dragover')"
           ondrop="handleDrop(event,'${id}-file','${id}-drop')">
           <span class="file-upload-icon">📁</span>
           <span id="${id}-file-lbl">Click to select file, or drag &amp; drop here</span>
         </div>
-        <input type="file" id="${id}-file" style="display:none" onchange="showFileName('${id}-file','${id}-file-lbl','${id}-drop')">
+        <input type="file" id="${id}-file" style="display:none"
+          onchange="showFileName('${id}-file','${id}-file-lbl','${id}-drop')">
       </div>
-      <button class="btn btn-primary" onclick="uploadContent('${type}')">
+      <button class="btn btn-primary" id="${id}-upload-btn" onclick="uploadContent('${type}')">
         ${icon} Upload ${label}
       </button>
     </div>`;
@@ -484,11 +563,10 @@ function handleDrop(e, fileId, dropId) {
   const dt = e.dataTransfer;
   if (dt.files.length) {
     const inp = document.getElementById(fileId);
-    // Create a DataTransfer to assign files
     const transfer = new DataTransfer();
     transfer.items.add(dt.files[0]);
     inp.files = transfer.files;
-    showFileName(fileId, fileId.replace('-file','-file-lbl'), dropId);
+    showFileName(fileId, fileId.replace('-file', '-file-lbl'), dropId);
   }
 }
 
@@ -512,11 +590,10 @@ async function uploadContent(type) {
   let fileData = null, fileName = null, fileSize = null;
   if (file) { fileData = await fileToBase64(file); fileName = file.name; fileSize = file.size; }
 
-  const btn = document.querySelector(`#${type}-alert ~ div button, #sec-${type} .btn-primary`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+  const uploadBtn = document.getElementById(`${type}-upload-btn`);
+  if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading…'; }
 
   const targets = target === '__all__' ? semStudents(sem).map(s => s.email) : [target];
-
   let ok = 0;
   await Promise.all(targets.map(async email => {
     let res;
@@ -526,18 +603,18 @@ async function uploadContent(type) {
     if (res && (res.msg === 'Note added' || res.msg === 'Assignment added' || res.msg === 'Lab report added')) ok++;
   }));
 
-  showAlert(`${type}-alert`, `✅ Uploaded to ${ok} student${ok!==1?'s':''}!`, 'success');
+  showAlert(`${type}-alert`, `✅ Uploaded to ${ok} student${ok !== 1 ? 's' : ''}!`, 'success');
   document.getElementById(`${type}-text`).value = '';
   document.getElementById(`${type}-file`).value = '';
   const lbl = document.getElementById(`${type}-file-lbl`);
   if (lbl) lbl.textContent = 'Click to select file, or drag & drop here';
   document.getElementById(`${type}-drop`)?.classList.remove('dragover');
-  if (btn) { btn.disabled = false; btn.textContent = `Upload`; }
-  // Reload the records list after upload
+  const icons = { notes: '📓', assignments: '📝', lab: '🔬' };
+  const labels = { notes: 'Notes', assignments: 'Assignments', lab: 'Lab Reports' };
+  if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.textContent = `${icons[type]} Upload ${labels[type]}`; }
   await loadContentRecords(type);
 }
 
-// Update target dropdown when semester changes
 function updateTargetDropdown(type) {
   const sem = getSelSem(`${type}-sem`);
   const sel = document.getElementById(`${type}-target`);
@@ -551,7 +628,7 @@ function updateTargetDropdown(type) {
 function renderFacultyNotes() {
   document.getElementById('sec-notes').innerHTML =
     contentUploadSection('notes', '📓', 'Notes') +
-    `<div class="card" id="notes-records-card">
+    `<div class="card">
       <div class="card-title">📋 Uploaded Notes <span class="badge badge-blue" id="notes-count" style="margin-left:.5rem">—</span></div>
       <div id="notes-records"><div class="empty">Select a semester to view uploaded notes.</div></div>
     </div>`;
@@ -562,7 +639,7 @@ function renderNotesSection() { updateTargetDropdown('notes'); loadContentRecord
 function renderFacultyAssignments() {
   document.getElementById('sec-assignments').innerHTML =
     contentUploadSection('assignments', '📝', 'Assignments') +
-    `<div class="card" id="assignments-records-card">
+    `<div class="card">
       <div class="card-title">📋 Uploaded Assignments <span class="badge badge-violet" id="assignments-count" style="margin-left:.5rem">—</span></div>
       <div id="assignments-records"><div class="empty">Select a semester to view uploaded assignments.</div></div>
     </div>`;
@@ -573,17 +650,17 @@ function renderAssignmentsSection() { updateTargetDropdown('assignments'); loadC
 function renderFacultyLab() {
   document.getElementById('sec-lab').innerHTML =
     contentUploadSection('lab', '🔬', 'Lab Reports') +
-    `<div class="card" id="lab-records-card">
+    `<div class="card">
       <div class="card-title">📋 Uploaded Lab Reports <span class="badge badge-green" id="lab-count" style="margin-left:.5rem">—</span></div>
       <div id="lab-records"><div class="empty">Select a semester to view uploaded lab reports.</div></div>
     </div>`;
 }
 function renderLabSection() { updateTargetDropdown('lab'); loadContentRecords('lab'); }
 
-// ── Load content records for a semester ──
+// ── Load content records ──
 async function loadContentRecords(type) {
-  const sem  = getSelSem(`${type}-sem`);
-  const sts  = semStudents(sem);
+  const sem   = getSelSem(`${type}-sem`);
+  const sts   = semStudents(sem);
   const recEl = document.getElementById(`${type}-records`);
   const cntEl = document.getElementById(`${type}-count`);
   if (!recEl) return;
@@ -592,14 +669,11 @@ async function loadContentRecords(type) {
   recEl.innerHTML = '<div class="empty">Loading…</div>';
   const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
 
-  // Build flat list: { studentName, studentEmail, item, index }
   const rows = [];
   sts.forEach((s, si) => {
     const d = dataArr[si];
     const items = type === 'notes' ? (d.notes||[]) : type === 'assignments' ? (d.assignments||[]) : (d.lab||[]);
-    items.forEach((item, idx) => {
-      rows.push({ s, item, idx });
-    });
+    items.forEach((item, idx) => rows.push({ s, item, idx }));
   });
 
   if (cntEl) cntEl.textContent = rows.length;
@@ -611,15 +685,14 @@ async function loadContentRecords(type) {
 
   const icon = type === 'notes' ? '📄' : type === 'assignments' ? '📋' : '🧪';
   recEl.innerHTML = `<div class="item-list">
-    ${rows.map(({s, item, idx}) => `
+    ${rows.map(({ s, item, idx }) => `
       <div class="item-row">
         <div class="item-row-left">
           <span class="item-row-icon">${item.fileData ? '📎' : icon}</span>
           <div style="min-width:0">
             <div class="item-row-text">${esc(item.text||'')}</div>
             <div style="font-size:.72rem;color:var(--muted)">
-              ${esc(s.name)}
-              ${item.fileName ? ` · ${esc(item.fileName)} (${fmtSize(item.fileSize||0)})` : ''}
+              ${esc(s.name)}${item.fileName ? ` · ${esc(item.fileName)} (${fmtSize(item.fileSize||0)})` : ''}
             </div>
           </div>
         </div>
@@ -634,15 +707,9 @@ async function loadContentRecords(type) {
 
 async function deleteContentItem(type, email, index) {
   if (!confirm('Delete this item?')) return;
-  let res;
-  if      (type === 'notes')       res = await apiDeleteNote(email, index);
-  else if (type === 'assignments') res = await apiDeleteAssignment(email, index);
-  else if (type === 'lab')         res = await apiDeleteLab(email, index);
+  if      (type === 'notes')       await apiDeleteNote(email, index);
+  else if (type === 'assignments') await apiDeleteAssignment(email, index);
+  else if (type === 'lab')         await apiDeleteLab(email, index);
   toast('Deleted!', 'success');
   await loadContentRecords(type);
-}
-
-// ── Add Student ──
-function renderFacultyStudentAdd() {
-  // Not a separate section — handled inline in students section
 }
