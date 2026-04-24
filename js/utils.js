@@ -177,11 +177,12 @@ const MENUS = {
     { id: 'lab', ico: '🔬', lbl: 'Lab Reports' },
   ],
   admin: [
-    { id: 'overview', ico: '🏠', lbl: 'Overview' },
-    { id: 'students', ico: '👨‍🎓', lbl: 'Students' },
-    { id: 'faculty', ico: '👩‍🏫', lbl: 'Faculty' },
-    { id: 'all-users', ico: '👥', lbl: 'All Users' },
-    { id: 'add-user', ico: '➕', lbl: 'Add User' },
+    { id:'overview',   ico:'🏠', lbl:'Overview'                        },
+    { id:'pending',    ico:'⏳', lbl:'Pending Approvals', badge: true  },
+    { id:'students',   ico:'👨‍🎓', lbl:'Students'                      },
+    { id:'faculty',    ico:'👩‍🏫', lbl:'Faculty'                       },
+    { id:'all-users',  ico:'👥', lbl:'All Users'                       },
+    { id:'add-user',   ico:'➕', lbl:'Add User'                        },
   ],
 };
 
@@ -197,7 +198,11 @@ function buildSidebar(role, user) {
   if (sbBadge) { sbBadge.className = `role-tag role-${role}`; sbBadge.textContent = role; }
   if (sbNav) {
     sbNav.innerHTML = (MENUS[role] || []).map(m =>
-      `<button class="sb-item" data-sec="${m.id}"><span class="sb-ico">${m.ico}</span>${m.lbl}</button>`
+      `<button class="sb-item" data-sec="${m.id}">
+        <span class="sb-ico">${m.ico}</span>
+        ${m.lbl}
+        ${m.badge ? `<span class="sb-badge" id="sb-badge-${m.id}" style="display:none">0</span>` : ''}
+      </button>`
     ).join('');
   }
 }

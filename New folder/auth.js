@@ -32,14 +32,7 @@ function initLogin() {
       const data = await res.json();
 
       if (!res.ok) {
-        // ── Approval pending — show special styled message ──
-        if (data.code === 'PENDING_APPROVAL' || res.status === 403) {
-          showAlert('auth-alert',
-            '⏳ Your account is awaiting admin approval. You will be able to log in once an administrator reviews and approves your registration.',
-            'warning');
-        } else {
-          showAlert('auth-alert', data.msg || 'Login failed.', 'error');
-        }
+        showAlert('auth-alert', data.msg || 'Login failed.', 'error');
         btn.disabled = false;
         btn.textContent = 'Sign In';
         return;
@@ -61,17 +54,18 @@ function initLogin() {
 
 // ── Register page ──
 function initRegister() {
+
   const form = document.getElementById('reg-form');
   if (!form) return;
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const name     = document.getElementById('r-name').value.trim();
-    const email    = document.getElementById('r-email').value.trim();
+    const name = document.getElementById('r-name').value.trim();
+    const email = document.getElementById('r-email').value.trim();
     const password = document.getElementById('r-pass').value;
-    const confirm  = document.getElementById('r-conf').value;
-    const role     = document.getElementById('r-role').value;
+    const confirm = document.getElementById('r-conf').value;
+    const role = document.getElementById('r-role').value;
     const semester = document.getElementById('r-semester').value;
 
     if (password !== confirm) {
@@ -85,9 +79,9 @@ function initRegister() {
 
     try {
       const res = await fetch(API + '/auth/register', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ name, email, password, role, semester })
+        body: JSON.stringify({ name, email, password, role, semester })
       });
 
       const data = await res.json();
@@ -99,14 +93,11 @@ function initRegister() {
         return;
       }
 
-      // Show approval notice instead of immediate redirect
-      showAlert('auth-alert',
-        '✅ Account created! Your registration is pending admin approval. You will be able to log in once approved.',
-        'success');
+      showAlert('auth-alert', 'Account created successfully! Redirecting...', 'success');
 
       setTimeout(() => {
         window.location.href = 'login.html';
-      }, 3000);
+      }, 1200);
 
     } catch (err) {
       showAlert('auth-alert', 'Server error. Try again later.', 'error');
@@ -114,4 +105,5 @@ function initRegister() {
       btn.textContent = 'Create Account';
     }
   });
+
 }

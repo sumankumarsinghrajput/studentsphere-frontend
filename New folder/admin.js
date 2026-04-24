@@ -5,9 +5,8 @@
 let _adminAllUsers = [];
 let _adminStudents = [];
 let _adminFaculty  = [];
-let _adminPending  = [];
 
-// Undo stack for semester promotions
+// Undo stack for semester promotions: [{userId, name, oldSem, newSem}]
 let _undoStack = [];
 
 async function initAdmin() {
@@ -29,37 +28,12 @@ async function refreshAdminData(user) {
   _adminStudents = _adminAllUsers.filter(u => u.role === 'student');
   _adminFaculty  = _adminAllUsers.filter(u => u.role === 'faculty');
 
-  // Load pending users
-  try {
-    const res = await fetch('https://studentsphere-backend-g4wj.onrender.com/api/users/pending', {
-      headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('ss_token') }
-    });
-    _adminPending = res.ok ? await res.json() : [];
-  } catch (e) {
-    _adminPending = [];
-  }
-
   const u = user || SS.get('ss_current_user');
   renderAdminOverview(u);
-  renderAdminPending();
   await renderAdminStudents();
   renderAdminFaculty();
   renderAdminAllUsers();
   renderAdminAddUser();
-
-  // Update pending badge in sidebar
-  updatePendingBadge();
-}
-
-function updatePendingBadge() {
-  // Works with both the ID-based badge (from patched buildSidebar)
-  // and a fallback querySelector
-  const badge = document.getElementById('sb-badge-pending')
-    || document.querySelector('[data-sec="pending"] .sb-badge');
-  if (badge) {
-    badge.textContent = _adminPending.length;
-    badge.style.display = _adminPending.length > 0 ? 'inline-block' : 'none';
-  }
 }
 
 // ── Overview ──
@@ -71,19 +45,6 @@ function renderAdminOverview(user) {
       <div class="page-title">Admin Dashboard</div>
       <div class="page-sub">Full system management &amp; analytics</div>
     </div>
-    ${_adminPending.length > 0 ? `
-    <div style="background:var(--amber-s);border:1px solid var(--amber);border-radius:var(--r-sm);padding:.85rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
-      <div style="display:flex;align-items:center;gap:.6rem">
-        <span style="font-size:1.2rem">⏳</span>
-        <div>
-          <div style="font-weight:700;color:var(--amber);font-size:.9rem">${_adminPending.length} account${_adminPending.length>1?'s':''} awaiting approval</div>
-          <div style="font-size:.78rem;color:var(--muted)">Review pending registrations to grant access.</div>
-        </div>
-      </div>
-      <button class="btn btn-sm" style="background:var(--amber);color:#000;font-weight:700" onclick="switchSec('pending')">
-        Review Now →
-      </button>
-    </div>` : ''}
     <div class="stat-row">
       <div class="stat-box">
         <div class="stat-val">${_adminAllUsers.length}</div>
@@ -100,10 +61,10 @@ function renderAdminOverview(user) {
         <div class="stat-lbl">Faculty</div>
         <span class="stat-bg-icon">👩‍🏫</span>
       </div>
-      <div class="stat-box" style="${_adminPending.length>0?'border-color:var(--amber)':''}">
-        <div class="stat-val" style="${_adminPending.length>0?'color:var(--amber)':''}">${_adminPending.length}</div>
-        <div class="stat-lbl">Pending</div>
-        <span class="stat-bg-icon">⏳</span>
+      <div class="stat-box">
+        <div class="stat-val">${sems.length}</div>
+        <div class="stat-lbl">Active Semesters</div>
+        <span class="stat-bg-icon">📚</span>
       </div>
     </div>
     <div class="grid-2">
@@ -158,102 +119,6 @@ async function loadAdminContentStats() {
   set('stat-att',   att);
 }
 
-// ── Pending Users ──
-function renderAdminPending() {
-  const el = document.getElementById('sec-pending');
-  if (!el) return;
-
-  el.innerHTML = `
-    <div class="page-head">
-      <div class="page-title">⏳ Pending Approvals</div>
-      <div class="page-sub">Review and approve or reject new registrations</div>
-    </div>
-    <div id="pending-alert"></div>
-    ${_adminPending.length === 0 ? `
-      <div class="card">
-        <div class="empty">
-          <span class="empty-ico">✅</span>
-          No pending registrations — you're all caught up!
-        </div>
-      </div>` : `
-    <div class="card">
-      <div class="card-title" style="justify-content:space-between">
-        <span>Pending Registrations</span>
-        <span class="badge" style="background:var(--amber);color:#000">${_adminPending.length} pending</span>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Semester</th><th>Registered</th><th>Actions</th>
-          </tr></thead>
-          <tbody>
-            ${_adminPending.map((u, idx) => `
-              <tr id="pending-row-${u._id}">
-                <td>${idx+1}</td>
-                <td><strong>${esc(u.name)}</strong></td>
-                <td style="color:var(--muted);font-size:.82rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email)}</td>
-                <td><span class="role-tag role-${u.role}">${u.role}</span></td>
-                <td>${u.semester ? `<span class="badge badge-violet">${esc(u.semester)}</span>` : '<span class="badge badge-gray">—</span>'}</td>
-                <td style="font-size:.82rem;color:var(--muted)">${u.createdAt ? fmtDate(u.createdAt) : '—'}</td>
-                <td>
-                  <div class="tbl-actions">
-                    <button class="btn btn-success btn-sm" onclick="approveUser('${u._id}','${esc(u.name)}')">
-                      ✅ Approve
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="rejectUser('${u._id}','${esc(u.name)}')">
-                      ❌ Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>`}`;
-}
-
-async function approveUser(id, name) {
-  if (!confirm(`Approve ${name}?\n\nThis will grant them full access to their dashboard.`)) return;
-
-  try {
-    const res = await fetch('https://studentsphere-backend-g4wj.onrender.com/api/users/' + id + '/approve', {
-      method:  'PUT',
-      headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('ss_token') }
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      toast(`✅ ${name} approved! They can now log in.`, 'success');
-      await refreshAdminData();
-    } else {
-      toast(data.msg || 'Failed to approve.', 'error');
-    }
-  } catch (err) {
-    toast('Server error. Please try again.', 'error');
-  }
-}
-
-async function rejectUser(id, name) {
-  if (!confirm(`Reject and delete ${name}'s registration?\n\nThis will permanently remove their account.`)) return;
-
-  try {
-    const res = await fetch('https://studentsphere-backend-g4wj.onrender.com/api/users/' + id + '/reject', {
-      method:  'DELETE',
-      headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('ss_token') }
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      toast(`🗑 ${name}'s registration rejected and removed.`, 'success');
-      await refreshAdminData();
-    } else {
-      toast(data.msg || 'Failed to reject.', 'error');
-    }
-  } catch (err) {
-    toast('Server error. Please try again.', 'error');
-  }
-}
-
 // ── Students — grouped by semester with Promote button ──
 async function renderAdminStudents() {
   const dataMap = {};
@@ -276,6 +141,7 @@ async function renderAdminStudents() {
     ? `<span class="badge" style="background:${v>=75?'var(--green)':v>=60?'var(--amber)':'var(--rose)'};color:#fff;min-width:48px;text-align:center">${v}%</span>`
     : `<span class="badge badge-gray" style="min-width:48px;text-align:center">—</span>`;
 
+  // Undo bar — show if there are undo-able actions
   const undoBar = _undoStack.length > 0 ? `
     <div style="background:var(--amber-s);border:1px solid var(--amber);border-radius:var(--r-sm);padding:.75rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
       <div style="font-size:.875rem;color:var(--amber);font-weight:600">
@@ -345,6 +211,7 @@ async function promoteAll(fromSem, toSem, count) {
   const students = _adminStudents.filter(s => s.semester === fromSem);
   if (!students.length) { toast('No students to promote.', 'error'); return; }
 
+  // Show loading toast
   toast(`Promoting ${students.length} students…`, 'info');
 
   const results = await Promise.all(students.map(s =>
@@ -357,6 +224,7 @@ async function promoteAll(fromSem, toSem, count) {
 
   const succeeded = results.filter(r => r.msg === 'Semester updated').length;
 
+  // Push to undo stack
   _undoStack.push({
     from:     fromSem,
     to:       toSem,
@@ -374,7 +242,7 @@ async function undoLastPromotion() {
   if (!last) { toast('Nothing to undo.', 'error'); return; }
 
   if (!confirm(`Undo promotion? Move ${last.count} students back from ${last.to} → ${last.from}?`)) {
-    _undoStack.push(last);
+    _undoStack.push(last); // put it back
     return;
   }
 
@@ -432,7 +300,7 @@ function renderAdminAllUsers() {
   document.getElementById('sec-all-users').innerHTML = `
     <div class="page-head">
       <div class="page-title">👥 All Users</div>
-      <div class="page-sub">Every approved account in the system</div>
+      <div class="page-sub">Every account in the system</div>
     </div>
     <div class="card">
       <div class="table-wrap">
@@ -469,7 +337,7 @@ function renderAdminAddUser() {
   document.getElementById('sec-add-user').innerHTML = `
     <div class="page-head">
       <div class="page-title">➕ Add User</div>
-      <div class="page-sub">Create a new student or faculty account (auto-approved)</div>
+      <div class="page-sub">Create a new student or faculty account</div>
     </div>
     <div class="card add-user-form">
       <div class="card-title">New Account</div>
