@@ -19,18 +19,21 @@
     <a href="about-dev.html">About</a>
   </div>
   <div class="nav-right" id="nav-right">
-    <a href="login.html" class="btn btn-ghost btn-sm" id="nav-login">Sign In</a>
+    <!-- Theme toggle injected here by initHam() when user is logged out -->
+    <a href="login.html"    class="btn btn-ghost btn-sm"   id="nav-login">Sign In</a>
     <a href="register.html" class="btn btn-primary btn-sm" id="nav-reg">Get Started</a>
-    <a href="#" class="btn btn-primary btn-sm" id="dash-btn" style="display:none">Dashboard →</a>
+    <a href="#"             class="btn btn-primary btn-sm" id="dash-btn" style="display:none">Dashboard →</a>
   </div>
-  <button class="hamburger" id="ham-btn"><span></span><span></span><span></span></button>
+  <button class="hamburger" id="ham-btn" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
 
 <div class="nav-drawer" id="nav-drawer">
   <a href="index.html">Home</a>
   <a href="about-dev.html">About</a>
   <a href="login.html">Sign In</a>
-  <a href="login.html">Get Started</a>
+  <a href="register.html">Get Started</a><!-- Fixed: was login.html -->
 </div>
 
 <div class="pt-nav">
@@ -53,12 +56,13 @@
           </h1>
 
           <p class="hero-desc">
-            Student Sphere is a complete academic management platform connecting students, faculty, and administrators. Track attendance, marks, assignments, notes and lab reports — all in one beautiful dashboard.
+            Student Sphere is a complete academic management platform connecting students, faculty, and administrators.
+            Track attendance, marks, assignments, notes and lab reports — all in one beautiful dashboard.
           </p>
 
           <div class="hero-btns">
             <a href="register.html" class="btn btn-primary btn-lg">Get Started Free →</a>
-            <a href="login.html" class="btn btn-outline btn-lg">Sign In</a>
+            <a href="login.html"    class="btn btn-outline btn-lg">Sign In</a>
           </div>
 
           <div class="hero-stats">
@@ -75,7 +79,7 @@
               <div class="hstat-lbl">Vanilla JS</div>
             </div>
           </div>
-        </div>
+        </div><!-- /hero-left -->
 
         <div class="hero-right">
           <div class="hcard">
@@ -115,17 +119,18 @@
               <span class="htag">Analytics</span>
             </div>
           </div>
-        </div>
+        </div><!-- /hero-right -->
 
       </div>
     </div>
   </section>
 
   <footer>
-    <p>© 2025 <span>Student Sphere</span> · Designed & Developed by Student Sphere Team</p>
+    <p>© 2025 <span>Student Sphere</span> · Designed &amp; Developed by Student Sphere Team</p>
   </footer>
 </div>
 
+<!-- Easter Egg -->
 <div class="egg-overlay" id="egg-overlay">
   <div class="egg-box">
     <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">

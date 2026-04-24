@@ -2,7 +2,7 @@
 // utils.js  —  Student Sphere shared utilities
 // ─────────────────────────────────────────────────
 
-/* ── Apply saved theme immediately to prevent flash of wrong theme ── */
+/* ── Apply saved theme immediately to prevent flash ── */
 (function () {
   const t = localStorage.getItem('ss_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', t);
@@ -15,15 +15,17 @@ const SS = {
   remove: k => localStorage.removeItem(k),
 };
 
-/* Password encoding */
-const encPass = p => btoa(unescape(encodeURIComponent(p)));
-const decPass = p => { try { return decodeURIComponent(escape(atob(p))); } catch { return ''; } };
-
 /* Initials */
-const initials = name => name ? name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase() : '?';
+const initials = name => name
+  ? name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase()
+  : '?';
 
 /* Date format */
-const fmtDate = iso => { if (!iso) return ''; const d = new Date(iso); return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); };
+const fmtDate = iso => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 /* Email validate */
 const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -32,7 +34,11 @@ const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const nowISO = () => new Date().toISOString();
 
 /* HTML escape */
-function esc(str) { const d = document.createElement('div'); d.textContent = String(str || ''); return d.innerHTML; }
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = String(str || '');
+  return d.innerHTML;
+}
 
 /* Progress bar */
 function progBar(val) {
@@ -51,6 +57,17 @@ function scoreColor(val) {
   return val >= 75 ? 'var(--green)' : val >= 50 ? 'var(--amber)' : 'var(--rose)';
 }
 
+/* ── File download helper (used in student.js itemRowWithDownload) ── */
+function downloadFile(dataUrl, fileName) {
+  if (!dataUrl) return;
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = fileName || 'download';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 /* ── Semester / Class list ── */
 const SEMESTERS = [
   'Semester 1', 'Semester 2', 'Semester 3', 'Semester 4',
@@ -59,10 +76,30 @@ const SEMESTERS = [
 const semesterOpts = (selected = '') =>
   SEMESTERS.map(s => `<option value="${s}"${s === selected ? ' selected' : ''}>${s}</option>`).join('');
 
+/* ── File size formatter ── */
+function fmtSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/* ── File to base64 ── */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ── Toast ── */
 function createToastWrap() {
   if (document.getElementById('toast-wrap')) return;
-  const w = document.createElement('div'); w.id = 'toast-wrap'; w.className = 'toast-wrap';
+  const w = document.createElement('div');
+  w.id = 'toast-wrap';
+  w.className = 'toast-wrap';
   document.body.appendChild(w);
 }
 function toast(msg, type = 'info') {
@@ -72,7 +109,12 @@ function toast(msg, type = 'info') {
   t.className = `toast toast-${type}`;
   t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
   document.getElementById('toast-wrap').appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(14px)'; t.style.transition = 'all .3s'; setTimeout(() => t.remove(), 320); }, 3200);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(14px)';
+    t.style.transition = 'all .3s';
+    setTimeout(() => t.remove(), 320);
+  }, 3200);
 }
 
 /* ── Alert inside element ── */
@@ -83,7 +125,7 @@ function showAlert(id, msg, type = 'error') {
   setTimeout(() => { if (el) el.innerHTML = ''; }, 4500);
 }
 
-/* ── Auth guard — checks both localStorage and token ── */
+/* ── Auth guard ── */
 function requireRole(role) {
   const u = SS.get('ss_current_user');
   const token = sessionStorage.getItem('ss_token');
@@ -100,7 +142,19 @@ function logout() {
 }
 
 /* ── Redirect by role ── */
-function goDash(role) { const m = { student: 'student.html', faculty: 'faculty.html', admin: 'admin.html' }; window.location.href = m[role] || 'login.html'; }
+function goDash(role) {
+  const m = { student: 'student.html', faculty: 'faculty.html', admin: 'admin.html' };
+  window.location.href = m[role] || 'login.html';
+}
+
+/* ── Get students/faculty from local cache (legacy helpers) ── */
+function getStudents() { return (SS.get('ss_users') || []).filter(u => u.role === 'student'); }
+function getFaculty()  { return (SS.get('ss_users') || []).filter(u => u.role === 'faculty'); }
+function getStudentsBySemester(sem) { return getStudents().filter(s => s.semester === sem); }
+function studentOpts(semester) {
+  const list = semester ? getStudentsBySemester(semester) : getStudents();
+  return list.map(s => `<option value="${esc(s.email)}">${esc(s.name)} (${esc(s.email)})</option>`).join('');
+}
 
 /* ══════════════════════════════════════════════
    THEME SYSTEM
@@ -116,7 +170,6 @@ function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   localStorage.setItem('ss_theme', next);
   document.documentElement.setAttribute('data-theme', next);
-  // Animate all toggle buttons
   document.querySelectorAll('.theme-toggle').forEach(btn => {
     btn.classList.add('spinning');
     setTimeout(() => {
@@ -137,7 +190,7 @@ function _updateToggleBtns(theme) {
 
 function _themeToggleHTML() {
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const icon = theme === 'dark' ? '☀️' : '🌙';
+  const icon  = theme === 'dark' ? '☀️' : '🌙';
   const label = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
   return `<button class="theme-toggle" onclick="toggleTheme()" title="${label}" aria-label="${label}"><span class="t-icon">${icon}</span></button>`;
 }
@@ -159,42 +212,42 @@ function renderNavUser(user) {
 /* ── Sidebar menus ── */
 const MENUS = {
   student: [
-    { id: 'overview', ico: '🏠', lbl: 'Overview' },
-    { id: 'profile', ico: '👤', lbl: 'Profile' },
-    { id: 'attendance', ico: '📅', lbl: 'Attendance' },
-    { id: 'marks', ico: '📊', lbl: 'Marks' },
-    { id: 'notes', ico: '📓', lbl: 'Notes' },
+    { id: 'overview',    ico: '🏠', lbl: 'Overview' },
+    { id: 'profile',     ico: '👤', lbl: 'Profile' },
+    { id: 'attendance',  ico: '📅', lbl: 'Attendance' },
+    { id: 'marks',       ico: '📊', lbl: 'Marks' },
+    { id: 'notes',       ico: '📓', lbl: 'Notes' },
     { id: 'assignments', ico: '📝', lbl: 'Assignments' },
-    { id: 'lab', ico: '🔬', lbl: 'Lab Reports' },
+    { id: 'lab',         ico: '🔬', lbl: 'Lab Reports' },
   ],
   faculty: [
-    { id: 'overview', ico: '🏠', lbl: 'Overview' },
-    { id: 'students', ico: '👥', lbl: 'Students' },
-    { id: 'attendance', ico: '📅', lbl: 'Attendance' },
-    { id: 'marks', ico: '📊', lbl: 'Marks' },
-    { id: 'notes', ico: '📓', lbl: 'Notes' },
+    { id: 'overview',    ico: '🏠', lbl: 'Overview' },
+    { id: 'students',    ico: '👥', lbl: 'Students' },
+    { id: 'attendance',  ico: '📅', lbl: 'Attendance' },
+    { id: 'marks',       ico: '📊', lbl: 'Marks' },
+    { id: 'notes',       ico: '📓', lbl: 'Notes' },
     { id: 'assignments', ico: '📝', lbl: 'Assignments' },
-    { id: 'lab', ico: '🔬', lbl: 'Lab Reports' },
+    { id: 'lab',         ico: '🔬', lbl: 'Lab Reports' },
   ],
   admin: [
-    { id:'overview',   ico:'🏠', lbl:'Overview'                        },
-    { id:'pending',    ico:'⏳', lbl:'Pending Approvals', badge: true  },
-    { id:'students',   ico:'👨‍🎓', lbl:'Students'                      },
-    { id:'faculty',    ico:'👩‍🏫', lbl:'Faculty'                       },
-    { id:'all-users',  ico:'👥', lbl:'All Users'                       },
-    { id:'add-user',   ico:'➕', lbl:'Add User'                        },
+    { id: 'overview',   ico: '🏠', lbl: 'Overview'          },
+    { id: 'pending',    ico: '⏳', lbl: 'Pending Approvals', badge: true },
+    { id: 'students',   ico: '👨‍🎓', lbl: 'Students'         },
+    { id: 'faculty',    ico: '👩‍🏫', lbl: 'Faculty'          },
+    { id: 'all-users',  ico: '👥', lbl: 'All Users'          },
+    { id: 'add-user',   ico: '➕', lbl: 'Add User'           },
   ],
 };
 
 function buildSidebar(role, user) {
-  const sbName = document.getElementById('sb-name');
+  const sbName  = document.getElementById('sb-name');
   const sbEmail = document.getElementById('sb-email');
-  const sbAv = document.getElementById('sb-avatar');
+  const sbAv    = document.getElementById('sb-avatar');
   const sbBadge = document.getElementById('sb-badge');
-  const sbNav = document.getElementById('sb-nav');
-  if (sbName) sbName.textContent = user.name;
+  const sbNav   = document.getElementById('sb-nav');
+  if (sbName)  sbName.textContent  = user.name;
   if (sbEmail) sbEmail.textContent = user.email;
-  if (sbAv) sbAv.textContent = initials(user.name);
+  if (sbAv)    sbAv.textContent    = initials(user.name);
   if (sbBadge) { sbBadge.className = `role-tag role-${role}`; sbBadge.textContent = role; }
   if (sbNav) {
     sbNav.innerHTML = (MENUS[role] || []).map(m =>
@@ -220,65 +273,77 @@ function initSbNav() {
   document.querySelectorAll('.sb-item').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.sec) switchSec(btn.dataset.sec);
-      // Close sidebar on mobile after navigation
       if (window._closeSidebar) window._closeSidebar();
       else document.querySelector('.sidebar')?.classList.remove('open');
     });
   });
 }
 
-/* ── Hamburger ── */
+/* ════════════════════════════════════════════════
+   HAMBURGER + THEME TOGGLE INIT
+   Called on every page (public + dashboard).
+════════════════════════════════════════════════ */
 function initHam() {
-  // Apply theme immediately (in case initTheme wasn't called yet)
+  // Always sync theme first
   initTheme();
 
-  // ── Inject theme toggle into public nav-right (non-dashboard pages) ──
-  const pubNavRight = document.querySelector('.nav > .nav-right');
-  if (pubNavRight && !document.getElementById('sb-toggle')) {
-    // Only on public pages (no sidebar toggle = not a dashboard page)
-    const tt = document.createElement('button');
-    tt.className = 'theme-toggle';
-    tt.onclick = toggleTheme;
-    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-    tt.title = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
-    tt.innerHTML = `<span class="t-icon">${theme === 'dark' ? '☀️' : '🌙'}</span>`;
-    // Insert before first child of nav-right
-    pubNavRight.insertBefore(tt, pubNavRight.firstChild);
+  /* ── PUBLIC pages: inject theme toggle into nav-right ──
+     Condition: page has #ham-btn (public hamburger), not #sb-toggle (dashboard).
+     main.js may rebuild nav-right for logged-in users, so we inject AFTER
+     DOMContentLoaded completes — this function is called from DOMContentLoaded. */
+  const isDashboard = !!document.getElementById('sb-toggle');
+
+  if (!isDashboard) {
+    const pubNavRight = document.querySelector('.nav > .nav-right');
+    if (pubNavRight && !pubNavRight.querySelector('.theme-toggle')) {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const tt = document.createElement('button');
+      tt.className   = 'theme-toggle';
+      tt.onclick     = toggleTheme;
+      tt.title       = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+      tt.setAttribute('aria-label', tt.title);
+      tt.innerHTML   = `<span class="t-icon">${theme === 'dark' ? '☀️' : '🌙'}</span>`;
+      // Insert as first child so it appears before Sign In / Get Started
+      pubNavRight.insertBefore(tt, pubNavRight.firstChild);
+    }
   }
-  // ── Public nav hamburger (nav-drawer) ──
-  const btn = document.getElementById('ham-btn');
+
+  /* ── PUBLIC nav hamburger (#ham-btn → .nav-drawer) ── */
+  const btn    = document.getElementById('ham-btn');
   const drawer = document.getElementById('nav-drawer');
   if (btn && drawer) {
     btn.addEventListener('click', () => {
       const open = drawer.classList.toggle('open');
       btn.classList.toggle('active', open);
-      btn.setAttribute('aria-expanded', open);
+      btn.setAttribute('aria-expanded', String(open));
     });
-    // Close drawer when a link is tapped
     drawer.querySelectorAll('a').forEach(a => {
       a.addEventListener('click', () => {
         drawer.classList.remove('open');
         btn.classList.remove('active');
       });
     });
-    // Close on outside click
     document.addEventListener('click', e => {
-      if (drawer.classList.contains('open') && !drawer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      if (
+        drawer.classList.contains('open') &&
+        !drawer.contains(e.target) &&
+        e.target !== btn &&
+        !btn.contains(e.target)
+      ) {
         drawer.classList.remove('open');
         btn.classList.remove('active');
       }
     });
   }
 
-  // ── Dashboard sidebar hamburger ──
+  /* ── DASHBOARD sidebar hamburger (#sb-toggle → .sidebar) ── */
   const sbBtn = document.getElementById('sb-toggle');
-  const sb = document.querySelector('.sidebar');
+  const sb    = document.querySelector('.sidebar');
   if (sbBtn && sb) {
-    // Create backdrop element if it doesn't exist
     let backdrop = document.getElementById('sb-backdrop');
     if (!backdrop) {
       backdrop = document.createElement('div');
-      backdrop.id = 'sb-backdrop';
+      backdrop.id        = 'sb-backdrop';
       backdrop.className = 'sidebar-backdrop';
       document.body.appendChild(backdrop);
     }
@@ -288,7 +353,7 @@ function initHam() {
       backdrop.classList.add('show');
       sbBtn.classList.add('active');
       sbBtn.setAttribute('aria-expanded', 'true');
-      document.body.style.overflow = 'hidden'; // prevent scroll behind sidebar
+      document.body.style.overflow = 'hidden';
     }
     function closeSidebar() {
       sb.classList.remove('open');
@@ -301,54 +366,42 @@ function initHam() {
     sbBtn.addEventListener('click', () => {
       sb.classList.contains('open') ? closeSidebar() : openSidebar();
     });
-
-    // Tap backdrop to close
     backdrop.addEventListener('click', closeSidebar);
 
-    // Swipe left to close (touch devices)
+    // Swipe left to close
     let touchStartX = 0;
     sb.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].clientX; }, { passive: true });
     sb.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - touchStartX;
-      if (dx < -50) closeSidebar(); // swiped left → close
+      if (e.changedTouches[0].clientX - touchStartX < -50) closeSidebar();
     }, { passive: true });
 
-    // Expose closeSidebar so sidebar nav items can call it
     window._closeSidebar = closeSidebar;
   }
 }
 
-/* ── Easter egg ──
-   Rules:
-   • Clicking the nav brand prevents default navigation.
-   • After every click a 1-second inactivity timer starts (or restarts).
-   • If that timer fires → the gap since the last click was ≥ 1 s
-       → navigate to index.html and reset the counter.
-   • If the click count reaches 5 before any timer fires → show popup,
-       reset counter, do NOT navigate.
-   Result: 5 consecutive clicks each less than 1 second apart = easter egg.
-           Any pause of 1 second or longer = redirect to home.
-── */
+/* ════════════════════════════════════════════════
+   EASTER EGG
+   5 rapid clicks on nav-brand (< 1s each) → popup.
+   Any pause ≥ 1s → navigate to index.html.
+════════════════════════════════════════════════ */
 function initEasterEgg() {
   const logo = document.querySelector('.nav-brand');
   if (!logo) return;
 
-  let clicks = 0;
+  let clicks   = 0;
   let navTimer = null;
 
   logo.addEventListener('click', function (e) {
-    e.preventDefault();          // stop the <a href> from firing immediately
-    clearTimeout(navTimer);      // cancel any pending redirect / reset
+    e.preventDefault();
+    clearTimeout(navTimer);
     clicks++;
 
     if (clicks >= 5) {
-      // Five rapid clicks — show the developer popup
       clicks = 0;
       document.getElementById('egg-overlay')?.classList.add('show');
-      return;                    // don't start a redirect timer
+      return;
     }
 
-    // After 1 second of no further click: redirect and reset
     navTimer = setTimeout(function () {
       clicks = 0;
       window.location.href = 'index.html';
@@ -358,37 +411,4 @@ function initEasterEgg() {
   document.getElementById('egg-close')?.addEventListener('click', function () {
     document.getElementById('egg-overlay')?.classList.remove('show');
   });
-}
-
-/* ── Get users by role ── */
-function getStudents() { return (SS.get('ss_users') || []).filter(u => u.role === 'student'); }
-function getFaculty() { return (SS.get('ss_users') || []).filter(u => u.role === 'faculty'); }
-
-/* Get students filtered by semester */
-function getStudentsBySemester(sem) {
-  return getStudents().filter(s => s.semester === sem);
-}
-
-/* ── Student select options ── */
-function studentOpts(semester) {
-  const list = semester ? getStudentsBySemester(semester) : getStudents();
-  return list.map(s => `<option value="${esc(s.email)}">${esc(s.name)} (${esc(s.email)})</option>`).join('');
-}
-
-/* ── File to base64 ── */
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-/* ── Format file size ── */
-function fmtSize(bytes) {
-  if (!bytes) return '';
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
