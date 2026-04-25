@@ -26,6 +26,7 @@ async function initFaculty() {
   renderFacultyNotes();
   renderFacultyAssignments();
   renderFacultyLab();
+  renderFacultyNotices();
 }
 
 // ── Semester selector bar ──
@@ -712,4 +713,95 @@ async function deleteContentItem(type, email, index) {
   else if (type === 'lab')         await apiDeleteLab(email, index);
   toast('Deleted!', 'success');
   await loadContentRecords(type);
+}
+
+// ── Notices ──
+async function renderFacultyNotices() {
+  const sems = [...new Set(_facultyStudents.map(s => s.semester).filter(Boolean))].sort();
+  const notices = await apiGetNotices();
+
+  document.getElementById('sec-notices').innerHTML = `
+    <div class="page-head">
+      <div class="page-title">📢 Notice Board</div>
+      <div class="page-sub">Post announcements for your students</div>
+    </div>
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title">✏️ Post New Notice</div>
+      <div id="notice-alert"></div>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="notice-title" class="form-control" placeholder="Notice title…">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="notice-body" class="form-control" rows="3"
+          style="resize:vertical;font-family:inherit" placeholder="Write your notice here…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Target Semester</label>
+        <select id="notice-sem" class="form-control" style="max-width:220px">
+          <option value="All">All Semesters</option>
+          ${sems.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="postNotice()">📢 Post Notice</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 All Notices
+        <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
+      </div>
+      <div id="notices-list">
+        ${notices.length ? notices.map(n => `
+          <div class="notice-card">
+            <div class="notice-card-top">
+              <div class="notice-card-title">${esc(n.title)}</div>
+              <span class="badge ${n.semester === 'All' ? 'badge-gray' : 'badge-blue'}">
+                ${esc(n.semester)}
+              </span>
+            </div>
+            <div class="notice-card-body">${esc(n.body)}</div>
+            <div class="notice-card-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+              <span>👤 ${esc(n.author)} · 🗓 ${fmtDate(n.createdAt)}</span>
+              <button class="btn btn-danger btn-sm" onclick="deleteNotice('${n._id}')">🗑 Delete</button>
+            </div>
+          </div>`).join('')
+        : `<div class="empty"><span class="empty-ico">📢</span>No notices yet.</div>`}
+      </div>
+    </div>`;
+}
+
+async function postNotice() {
+  const title = document.getElementById('notice-title').value.trim();
+  const body  = document.getElementById('notice-body').value.trim();
+  const sem   = document.getElementById('notice-sem').value;
+
+  if (!title || !body) {
+    showAlert('notice-alert', 'Title and message are required.', 'error');
+    return;
+  }
+
+  const btn = document.querySelector('#sec-notices .btn-primary');
+  btn.disabled = true; btn.textContent = 'Posting…';
+
+  const res = await apiCreateNotice(title, body, sem);
+  if (res.msg === 'Notice posted') {
+    toast('✅ Notice posted!', 'success');
+    document.getElementById('notice-title').value = '';
+    document.getElementById('notice-body').value  = '';
+    await renderFacultyNotices();
+  } else {
+    showAlert('notice-alert', res.msg || 'Failed to post.', 'error');
+  }
+  btn.disabled = false; btn.textContent = '📢 Post Notice';
+}
+
+async function deleteNotice(id) {
+  if (!confirm('Delete this notice?')) return;
+  const res = await apiDeleteNotice(id);
+  if (res.msg === 'Notice deleted') {
+    toast('Notice deleted.', 'success');
+    await renderFacultyNotices();
+  } else {
+    toast(res.msg || 'Failed.', 'error');
+  }
 }

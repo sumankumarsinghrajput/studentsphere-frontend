@@ -46,6 +46,7 @@ async function refreshAdminData(user) {
   renderAdminFaculty();
   renderAdminAllUsers();
   renderAdminAddUser();
+  await renderAdminNotices();
 
   // Update pending badge in sidebar
   updatePendingBadge();
@@ -584,4 +585,44 @@ async function deleteUser(id, name) {
   } catch (err) {
     toast('Server error.', 'error');
   }
+}
+
+// ── Notices (admin view) ──
+async function renderAdminNotices() {
+  const el = document.getElementById('sec-notices');
+  if (!el) return;
+
+  const notices = await apiGetNotices();
+
+  el.innerHTML = `
+    <div class="page-head">
+      <div class="page-title">📢 Notice Board</div>
+      <div class="page-sub">All notices posted by faculty & admin</div>
+    </div>
+    <div class="card">
+      <div class="card-title">All Notices
+        <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
+      </div>
+      ${notices.length ? notices.map(n => `
+        <div class="notice-card">
+          <div class="notice-card-top">
+            <div class="notice-card-title">${esc(n.title)}</div>
+            <span class="badge ${n.semester === 'All' ? 'badge-gray' : 'badge-blue'}">${esc(n.semester)}</span>
+          </div>
+          <div class="notice-card-body">${esc(n.body)}</div>
+          <div class="notice-card-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+            <span>👤 ${esc(n.author)} · 🗓 ${fmtDate(n.createdAt)}</span>
+            <button class="btn btn-danger btn-sm" onclick="adminDeleteNotice('${n._id}')">🗑 Delete</button>
+          </div>
+        </div>`).join('')
+      : `<div class="empty"><span class="empty-ico">📢</span>No notices posted yet.</div>`}
+    </div>`;
+}
+
+async function adminDeleteNotice(id) {
+  if (!confirm('Delete this notice?')) return;
+  const res = await apiDeleteNotice(id);
+  toast(res.msg === 'Notice deleted' ? 'Notice deleted.' : (res.msg || 'Failed.'),
+        res.msg === 'Notice deleted' ? 'success' : 'error');
+  await renderAdminNotices();
 }

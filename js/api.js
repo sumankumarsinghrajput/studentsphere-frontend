@@ -11,7 +11,9 @@ function apiHeaders() {
   };
 }
 
-// ── Users ──
+// ══════════════════════════════════
+// USERS
+// ══════════════════════════════════
 async function apiGetUsers() {
   try {
     const res = await fetch(API + '/users', { headers: apiHeaders() });
@@ -46,7 +48,9 @@ async function apiDeleteUser(id) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
-// ── Student Data ──
+// ══════════════════════════════════
+// STUDENT DATA
+// ══════════════════════════════════
 async function apiGetMyData() {
   try {
     const res = await fetch(API + '/data/my', { headers: apiHeaders() });
@@ -55,7 +59,6 @@ async function apiGetMyData() {
   } catch (e) { console.error('apiGetMyData:', e); return {}; }
 }
 
-// Fixed: uses /data/student/:email instead of /data/:email (avoids Express 5 crash)
 async function apiGetStudentData(email) {
   try {
     const res = await fetch(API + '/data/student/' + encodeURIComponent(email), {
@@ -106,12 +109,25 @@ async function apiDeleteNote(email, index) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
-async function apiAddAssignment(email, text, fileData, fileName, fileSize) {
+async function apiAddAssignment(email, text, fileData, fileName, fileSize, dueDate, allowLate) {
   try {
     const res = await fetch(API + '/data/assignments', {
       method: 'POST', headers: apiHeaders(),
-      body: JSON.stringify({ email, text, fileData, fileName, fileSize })
+      body: JSON.stringify({ email, text, fileData, fileName, fileSize, dueDate, allowLate })
     });
+    return res.json();
+  } catch (e) { return { msg: 'Network error.' }; }
+}
+
+async function apiUpdateAssignment(email, index, dueDate, allowLate) {
+  try {
+    const res = await fetch(
+      API + '/data/assignments/' + encodeURIComponent(email) + '/' + index,
+      {
+        method: 'PUT', headers: apiHeaders(),
+        body: JSON.stringify({ dueDate, allowLate })
+      }
+    );
     return res.json();
   } catch (e) { return { msg: 'Network error.' }; }
 }
@@ -142,6 +158,60 @@ async function apiDeleteLab(email, index) {
       API + '/data/lab/' + encodeURIComponent(email) + '/' + index,
       { method: 'DELETE', headers: apiHeaders() }
     );
+    return res.json();
+  } catch (e) { return { msg: 'Network error.' }; }
+}
+
+// ══════════════════════════════════
+// SUBMISSIONS
+// ══════════════════════════════════
+async function apiSubmitAssignment(payload) {
+  try {
+    const res = await fetch(API + '/data/submit', {
+      method: 'POST', headers: apiHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  } catch (e) { return { msg: 'Network error.' }; }
+}
+
+async function apiGetSubmissions(studentEmail) {
+  try {
+    const res = await fetch(
+      API + '/data/submissions/' + encodeURIComponent(studentEmail),
+      { headers: apiHeaders() }
+    );
+    if (!res.ok) return [];
+    return res.json();
+  } catch (e) { return []; }
+}
+
+// ══════════════════════════════════
+// NOTICES
+// ══════════════════════════════════
+async function apiGetNotices() {
+  try {
+    const res = await fetch(API + '/notices', { headers: apiHeaders() });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (e) { return []; }
+}
+
+async function apiCreateNotice(title, body, semester) {
+  try {
+    const res = await fetch(API + '/notices', {
+      method: 'POST', headers: apiHeaders(),
+      body: JSON.stringify({ title, body, semester })
+    });
+    return res.json();
+  } catch (e) { return { msg: 'Network error.' }; }
+}
+
+async function apiDeleteNotice(id) {
+  try {
+    const res = await fetch(API + '/notices/' + id, {
+      method: 'DELETE', headers: apiHeaders()
+    });
     return res.json();
   } catch (e) { return { msg: 'Network error.' }; }
 }

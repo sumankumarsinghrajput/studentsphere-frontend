@@ -1339,3 +1339,200 @@ footer span { color: var(--accent); }
   .sb-avatar { width: 44px; height: 44px; font-size: 0.95rem; }
   .sidebar   { width: 88vw; }
 }
+
+/* ════════════════════════════════════════════════
+   NEW FEATURES — appended to end of style.css
+════════════════════════════════════════════════ */
+
+/* ── Notice Board ── */
+.notice-ticker {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-glow);
+  border-radius: var(--r-sm);
+  padding: .6rem 1rem;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.notice-ticker-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.notice-ticker-text {
+  font-size: .82rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notice-card {
+  background: var(--card2, var(--card));
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 1rem 1.25rem;
+  margin-bottom: .75rem;
+  transition: border-color .2s;
+}
+.notice-card:last-child { margin-bottom: 0; }
+.notice-card:hover { border-color: var(--accent-glow); }
+.notice-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .5rem;
+  flex-wrap: wrap;
+}
+.notice-card-title {
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--white);
+  flex: 1;
+}
+.notice-card-body {
+  font-size: .85rem;
+  color: var(--text);
+  line-height: 1.65;
+  margin-bottom: .65rem;
+  white-space: pre-wrap;
+}
+.notice-card-meta {
+  font-size: .75rem;
+  color: var(--muted);
+}
+
+.notice-card-mini {
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.notice-card-mini:last-child { border-bottom: none; }
+.notice-mini-title {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 2px;
+}
+.notice-mini-meta { font-size: .72rem; color: var(--muted); }
+
+/* ── File Viewer Overlay ── */
+.file-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(8px);
+  z-index: 9990;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.file-viewer-overlay.show { display: flex; }
+.file-viewer-box {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.file-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.file-viewer-name {
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-viewer-body { flex: 1; overflow: hidden; }
+.file-viewer-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 65vh;
+  border: none;
+  background: #fff;
+}
+
+/* ── Assignment row (student submission) ── */
+.asgn-row {
+  padding: .85rem 1rem !important;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  margin-bottom: .6rem;
+}
+.asgn-row:last-child { margin-bottom: 0; }
+
+/* ── Submission status badges ── */
+.badge-green  { background: rgba(52,211,153,.15); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+.badge-rose   { background: rgba(251,113,133,.15); color: #fb7185;     border: 1px solid rgba(251,113,133,.3); }
+.badge-amber  { background: var(--amber-s);        color: var(--amber); border: 1px solid rgba(245,158,11,.3); }
+
+/* ── Alert warning ── */
+.alert-warning {
+  background: var(--amber-s);
+  border-color: rgba(245,158,11,.35);
+  color: #fcd34d;
+}
+
+/* ── Pending badge in sidebar ── */
+.sb-link .sb-badge,
+.sb-item .sb-badge {
+  margin-left: auto;
+  background: var(--amber);
+  color: #000;
+  font-size: .62rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 99px;
+  line-height: 1.5;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+  display: none;
+}
+
+/* ── Role tags (complete set) ── */
+.role-tag   { display:inline-block; padding:.2rem .6rem; border-radius:99px; font-size:.75rem; font-weight:700; text-transform:capitalize; }
+.role-student { background:rgba(59,130,246,.12); color:#60a5fa; }
+.role-faculty { background:rgba(192,132,252,.15); color:#c084fc; }
+.role-admin   { background:rgba(52,211,153,.15);  color:#34d399; }
+
+/* ── Extra CSS variables (if not already set) ── */
+:root {
+  --amber:  #f59e0b;
+  --amber-s: rgba(245,158,11,.1);
+  --green:  #34d399;
+  --violet: #c084fc;
+  --rose:   #fb7185;
+}
+
+/* ── Responsive tweaks for new features ── */
+@media (max-width: 768px) {
+  .file-viewer-frame { min-height: 55vh; }
+  .notice-ticker { display: none; } /* too narrow on mobile */
+  .asgn-row { padding: .7rem .75rem !important; }
+  .notice-card { padding: .85rem 1rem; }
+}
+@media (max-width: 480px) {
+  .file-viewer-box { max-height: 95vh; }
+  .notice-card-top { flex-direction: column; }
+}
