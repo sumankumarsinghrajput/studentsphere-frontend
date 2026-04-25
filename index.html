@@ -16,13 +16,15 @@
   </a>
   <div class="nav-links">
     <a href="index.html" class="active">Home</a>
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#download">Download App</a>
     <a href="about-dev.html">About</a>
   </div>
   <div class="nav-right" id="nav-right">
-    <!-- Theme toggle injected here by initHam() when user is logged out -->
     <a href="login.html"    class="btn btn-ghost btn-sm"   id="nav-login">Sign In</a>
     <a href="register.html" class="btn btn-primary btn-sm" id="nav-reg">Get Started</a>
-    <a href="#"             class="btn btn-primary btn-sm" id="dash-btn" style="display:none">Dashboard →</a>
+    <a href="#"             class="btn btn-primary btn-sm" id="dash-btn" style="display:none">Dashboard &rarr;</a>
   </div>
   <button class="hamburger" id="ham-btn" aria-label="Toggle menu" aria-expanded="false">
     <span></span><span></span><span></span>
@@ -31,12 +33,16 @@
 
 <div class="nav-drawer" id="nav-drawer">
   <a href="index.html">Home</a>
+  <a href="#features">Features</a>
+  <a href="#how-it-works">How It Works</a>
+  <a href="#download">Download App</a>
   <a href="about-dev.html">About</a>
   <a href="login.html">Sign In</a>
-  <a href="register.html">Get Started</a><!-- Fixed: was login.html -->
+  <a href="register.html">Get Started</a>
 </div>
 
 <div class="pt-nav">
+
   <section class="hero">
     <div class="hero-glow"></div>
     <div class="hero-dots"></div>
@@ -46,91 +52,154 @@
         <div class="hero-left">
           <div class="hero-chip">
             <span class="chip-dot"></span>
-            Academic ERP &nbsp;·&nbsp; v2.0
+            Academic ERP &nbsp;&middot;&nbsp; v2.0
           </div>
-
           <h1 class="hero-title">
             Manage Your<br>
             Campus Life<br>
             <span class="hl">Effortlessly.</span>
           </h1>
-
           <p class="hero-desc">
-            Student Sphere is a complete academic management platform connecting students, faculty, and administrators.
+            Student Sphere connects students, faculty, and administrators in one platform.
             Track attendance, marks, assignments, notes and lab reports — all in one beautiful dashboard.
           </p>
-
           <div class="hero-btns">
-            <a href="register.html" class="btn btn-primary btn-lg">Get Started Free →</a>
+            <a href="register.html" class="btn btn-primary btn-lg">Get Started Free &rarr;</a>
             <a href="login.html"    class="btn btn-outline btn-lg">Sign In</a>
           </div>
-
-          <div class="hero-stats">
-            <div>
-              <div class="hstat-val">3</div>
-              <div class="hstat-lbl">User Roles</div>
-            </div>
-            <div>
-              <div class="hstat-val">10+</div>
-              <div class="hstat-lbl">Features</div>
-            </div>
-            <div>
-              <div class="hstat-val">100%</div>
-              <div class="hstat-lbl">Vanilla JS</div>
-            </div>
+          <div class="hero-app-strip">
+            <span class="hero-app-label">&#128241; Available on Android</span>
+            <a href="StudentSphere.apk" download class="btn-app">
+              <span class="btn-app-icon">&#11015;</span>
+              <span class="btn-app-text">
+                <span class="btn-app-sub">Download</span>
+                <span class="btn-app-main">Android APK</span>
+              </span>
+            </a>
           </div>
-        </div><!-- /hero-left -->
+          <div class="hero-stats">
+            <div class="hstat"><div class="hstat-val">3</div><div class="hstat-lbl">User Roles</div></div>
+            <div class="hstat"><div class="hstat-val">10+</div><div class="hstat-lbl">Features</div></div>
+            <div class="hstat"><div class="hstat-val">100%</div><div class="hstat-lbl">Vanilla JS</div></div>
+          </div>
+        </div>
 
         <div class="hero-right">
           <div class="hcard">
             <div class="hcard-head">
-              <div class="hcard-icon ic-blue">👨‍🎓</div>
+              <div class="hcard-icon ic-blue">&#128104;&#8205;&#127979;</div>
               <div class="hcard-title">Student</div>
             </div>
             <div class="hcard-desc">View attendance, marks, study notes, assignments, and lab reports — everything in one place.</div>
             <div class="hcard-tags">
-              <span class="htag">Attendance</span>
-              <span class="htag">Marks</span>
-              <span class="htag">Notes</span>
-              <span class="htag">Assignments</span>
+              <span class="htag">Attendance</span><span class="htag">Marks</span><span class="htag">Notes</span><span class="htag">Assignments</span>
             </div>
           </div>
-
           <div class="hcard">
             <div class="hcard-head">
-              <div class="hcard-icon ic-violet">👩‍🏫</div>
+              <div class="hcard-icon ic-violet">&#128105;&#8205;&#127979;</div>
               <div class="hcard-title">Faculty</div>
             </div>
-            <div class="hcard-desc">Manage student data, update attendance and marks, upload study materials with ease.</div>
+            <div class="hcard-desc">Manage student data, update attendance and marks, upload study materials, post notices.</div>
             <div class="hcard-tags">
-              <span class="htag">Update Records</span>
-              <span class="htag">Upload Materials</span>
+              <span class="htag">Update Records</span><span class="htag">Upload Materials</span><span class="htag">Notices</span>
             </div>
           </div>
-
           <div class="hcard">
             <div class="hcard-head">
-              <div class="hcard-icon ic-green">🛡️</div>
+              <div class="hcard-icon ic-green">&#128737;&#65039;</div>
               <div class="hcard-title">Administrator</div>
             </div>
-            <div class="hcard-desc">Full system control — manage all users, view analytics, add or delete accounts.</div>
+            <div class="hcard-desc">Full system control — approve registrations, manage all users, view analytics.</div>
             <div class="hcard-tags">
-              <span class="htag">User Management</span>
-              <span class="htag">Analytics</span>
+              <span class="htag">User Management</span><span class="htag">Approvals</span><span class="htag">Analytics</span>
             </div>
           </div>
-        </div><!-- /hero-right -->
+        </div>
 
       </div>
     </div>
   </section>
 
+  <section class="hp-section" id="features">
+    <div class="container">
+      <div class="hp-section-head">
+        <div class="hp-label">Features</div>
+        <h2 class="hp-title">Everything You Need, In One Place</h2>
+        <p class="hp-sub">From attendance tracking to file sharing, Student Sphere covers every academic need.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card"><div class="feat-icon">&#128197;</div><div class="feat-name">Attendance Tracking</div><div class="feat-desc">Faculty update attendance per semester. Students see live percentage and exam eligibility.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#128202;</div><div class="feat-name">Marks &amp; Grades</div><div class="feat-desc">Automatic grade cards (A&ndash;F) with performance tags and pass/fail indicators.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#128211;</div><div class="feat-name">Study Notes</div><div class="feat-desc">Faculty upload PDF notes. Students view inside the app and download anytime.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#128221;</div><div class="feat-name">Assignments</div><div class="feat-desc">Faculty share assignments with due dates. Students submit work directly from the dashboard.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#128300;</div><div class="feat-name">Lab Reports</div><div class="feat-desc">Distribute and submit lab work digitally — no paper needed.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#128226;</div><div class="feat-name">Notice Board</div><div class="feat-desc">Faculty post announcements targeted at specific semesters or the entire institution.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#128737;&#65039;</div><div class="feat-name">Admin Approvals</div><div class="feat-desc">Every registration requires admin approval — keeping the platform secure and organized.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#11014;&#65039;</div><div class="feat-name">Semester Promotion</div><div class="feat-desc">Admins bulk-promote entire semesters in one click, with undo support.</div></div>
+        <div class="feat-card"><div class="feat-icon">&#127761;</div><div class="feat-name">Dark &amp; Light Mode</div><div class="feat-desc">Smooth theme toggle saved across sessions. Looks great in both modes.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hp-section hp-section-alt" id="how-it-works">
+    <div class="container">
+      <div class="hp-section-head">
+        <div class="hp-label">How It Works</div>
+        <h2 class="hp-title">Up and Running in Minutes</h2>
+        <p class="hp-sub">Four simple steps and your entire institution is connected.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card"><div class="step-num">1</div><div class="step-title">Register</div><div class="step-desc">Sign up with your name, email, role, and semester. Takes under a minute.</div></div>
+        <div class="step-card"><div class="step-num">2</div><div class="step-title">Get Approved</div><div class="step-desc">Admin reviews and approves your account before you can log in.</div></div>
+        <div class="step-card"><div class="step-num">3</div><div class="step-title">Log In</div><div class="step-desc">Sign in to your personalized dashboard tailored exactly to your role.</div></div>
+        <div class="step-card"><div class="step-num">4</div><div class="step-title">Stay On Top</div><div class="step-desc">Track attendance, check marks, download notes, submit assignments.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hp-section hp-download-section" id="download">
+    <div class="container">
+      <div class="hp-download-inner">
+        <div class="hp-download-text">
+          <div class="hp-label">Mobile App</div>
+          <h2 class="hp-title">Get the Student Sphere App</h2>
+          <p class="hp-sub">Access your dashboard anytime, anywhere. The Android app gives you instant access to your attendance, marks, notes and assignments — right from your phone.</p>
+          <div class="hp-download-btns">
+            <a href="StudentSphere.apk" download class="btn-app btn-app-lg">
+              <span class="btn-app-icon">&#129302;</span>
+              <span class="btn-app-text">
+                <span class="btn-app-sub">Download for Android</span>
+                <span class="btn-app-main">Download APK</span>
+              </span>
+            </a>
+            <a href="login.html" class="btn btn-outline btn-lg">Continue in Browser &rarr;</a>
+          </div>
+        </div>
+        <div class="hp-download-visual">
+          <div class="phone-mock">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="ps-bar ps-accent"></div>
+              <div class="ps-bar" style="width:80%"></div>
+              <div class="ps-mini-card"><span class="ps-dot ps-dot-orange"></span>Attendance &middot; 82%</div>
+              <div class="ps-mini-card"><span class="ps-dot ps-dot-green"></span>Marks &middot; 76%</div>
+              <div class="ps-mini-card"><span class="ps-dot ps-dot-violet"></span>Notes &middot; 5 files</div>
+              <div class="ps-bar" style="width:50%"></div>
+              <div class="ps-mini-card"><span class="ps-dot ps-dot-orange"></span>Assignments &middot; 3</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <footer>
-    <p>© 2025 <span>Student Sphere</span> · Designed &amp; Developed by Student Sphere Team</p>
+    <p>&copy; 2025 <span>Student Sphere</span> &middot; Designed &amp; Developed by Student Sphere Team</p>
   </footer>
+
 </div>
 
-<!-- Easter Egg -->
 <div class="egg-overlay" id="egg-overlay">
   <div class="egg-box">
     <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">

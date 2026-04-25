@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────
-// student.js — Student dashboard (API version)
+// student.js — Student dashboard
 // ────────────────────────────────────────────
 
 async function initStudent() {
@@ -13,47 +13,73 @@ async function initStudent() {
   initHam();
   initEasterEgg();
 
-  const data    = await apiGetMyData();
-  const notices = await apiGetNotices();
+  const [data, notices] = await Promise.all([apiGetMyData(), apiGetNotices()]);
   renderStudentSections(user, data, notices);
 }
 
-// ── File viewer overlay ──
+// ════════════════════════════════════════════
+// FILE VIEWER — fullscreen, zoom, mobile-safe
+// ════════════════════════════════════════════
+let _fvZoom = 1;
+
 function openFileViewer(fileData, fileName) {
-  let viewer = document.getElementById('ss-file-viewer');
-  if (!viewer) {
-    viewer = document.createElement('div');
-    viewer.id = 'ss-file-viewer';
-    viewer.className = 'file-viewer-overlay';
-    viewer.innerHTML = `
-      <div class="file-viewer-box">
-        <div class="file-viewer-header">
-          <span class="file-viewer-name" id="fv-name"></span>
-          <div style="display:flex;gap:.5rem">
-            <button class="btn btn-outline btn-sm" id="fv-download">⬇ Download</button>
-            <button class="btn btn-ghost btn-sm" id="fv-close">✕ Close</button>
-          </div>
+  let overlay = document.getElementById('ss-file-viewer');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'ss-file-viewer';
+    overlay.className = 'file-viewer-overlay';
+    overlay.innerHTML = `
+      <div class="file-viewer-header">
+        <span class="file-viewer-name" id="fv-name"></span>
+        <div class="file-viewer-controls">
+          <button class="fv-zoom-btn" id="fv-zoom-out" title="Zoom Out">−</button>
+          <span class="fv-zoom-label" id="fv-zoom-label">100%</span>
+          <button class="fv-zoom-btn" id="fv-zoom-in" title="Zoom In">+</button>
+          <button class="fv-zoom-btn" id="fv-zoom-reset" title="Reset Zoom" style="font-size:.7rem;padding:0 4px;width:auto;min-width:32px">↺</button>
+          <button class="btn btn-outline btn-sm" id="fv-download" style="margin-left:.25rem">⬇ Download</button>
+          <button class="btn btn-ghost btn-sm" id="fv-close">✕</button>
         </div>
-        <div class="file-viewer-body">
-          <iframe id="fv-frame" class="file-viewer-frame" src=""></iframe>
+      </div>
+      <div class="file-viewer-body" id="fv-body">
+        <div class="file-viewer-frame-wrap" id="fv-wrap">
+          <iframe class="file-viewer-frame" id="fv-frame" src="about:blank"></iframe>
         </div>
       </div>`;
-    document.body.appendChild(viewer);
-    document.getElementById('fv-close').onclick = () => {
-      viewer.classList.remove('show');
-      document.getElementById('fv-frame').src = '';
-    };
-    viewer.addEventListener('click', e => {
-      if (e.target === viewer) {
-        viewer.classList.remove('show');
-        document.getElementById('fv-frame').src = '';
-      }
-    });
+    document.body.appendChild(overlay);
+
+    document.getElementById('fv-close').onclick    = closeFileViewer;
+    document.getElementById('fv-zoom-in').onclick  = () => fvZoom(0.2);
+    document.getElementById('fv-zoom-out').onclick = () => fvZoom(-0.2);
+    document.getElementById('fv-zoom-reset').onclick = () => { _fvZoom = 1; fvApplyZoom(); };
   }
+
+  _fvZoom = 1;
   document.getElementById('fv-name').textContent = fileName || 'File Viewer';
   document.getElementById('fv-frame').src = fileData;
   document.getElementById('fv-download').onclick = () => downloadFile(fileData, fileName);
-  viewer.classList.add('show');
+  fvApplyZoom();
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFileViewer() {
+  const overlay = document.getElementById('ss-file-viewer');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+  document.getElementById('fv-frame').src = 'about:blank';
+  document.body.style.overflow = '';
+}
+
+function fvZoom(delta) {
+  _fvZoom = Math.min(3, Math.max(0.4, _fvZoom + delta));
+  fvApplyZoom();
+}
+
+function fvApplyZoom() {
+  const wrap  = document.getElementById('fv-wrap');
+  const label = document.getElementById('fv-zoom-label');
+  if (wrap)  wrap.style.transform = `scale(${_fvZoom})`;
+  if (label) label.textContent = Math.round(_fvZoom * 100) + '%';
 }
 
 function downloadFile(fileData, fileName) {
@@ -63,20 +89,35 @@ function downloadFile(fileData, fileName) {
   a.click();
 }
 
-// ── Submission status helper ──
-function submissionStatus(asgn, submissions) {
-  if (!asgn._id) return { label: 'Pending', cls: 'badge-amber' };
-  const sub = (submissions || []).find(s => s.assignmentId === String(asgn._id));
+// ════════════════════════════════════════════
+// SUBMISSION HELPERS
+// ════════════════════════════════════════════
+function getSubmissionStatus(item, submissions, type) {
+  if (!item._id) return { label: 'Pending', cls: 'badge-amber' };
+  const sub = (submissions || []).find(
+    s => s.itemId === String(item._id) && s.type === type
+  );
   if (!sub) {
-    if (asgn.dueDate && new Date() > new Date(asgn.dueDate) && !asgn.allowLate)
+    const now = new Date();
+    if (item.dueDate && now > new Date(item.dueDate) && !item.allowLate)
       return { label: 'Closed', cls: 'badge-rose' };
     return { label: 'Pending', cls: 'badge-amber' };
   }
   return sub.status === 'late'
     ? { label: 'Submitted (Late)', cls: 'badge-amber' }
-    : { label: 'Submitted ✓', cls: 'badge-green' };
+    : { label: 'Submitted ✓',     cls: 'badge-green' };
 }
 
+function dueDateStr(item) {
+  if (!item.dueDate) return '';
+  const due  = new Date(item.dueDate);
+  const past = new Date() > due;
+  return `Due: ${fmtDate(item.dueDate)}${past ? ' <span style="color:var(--rose)">(Past)</span>' : ''}`;
+}
+
+// ════════════════════════════════════════════
+// RENDER ALL SECTIONS
+// ════════════════════════════════════════════
 function renderStudentSections(user, data, notices) {
   const sem   = user.semester || 'N/A';
   const att   = data.attendance ?? null;
@@ -89,6 +130,13 @@ function renderStudentSections(user, data, notices) {
   const hasAtt  = att !== null && att !== undefined;
   const hasMark = mark !== null && mark !== undefined;
 
+  // ── Notices ticker (top of overview) ──
+  const noticeTickerHtml = notices.length ? `
+    <div class="notice-ticker notices-highlight">
+      <span class="notice-ticker-label">📢 Notice</span>
+      <span class="notice-ticker-text">${esc(notices[0].title)} — ${esc(notices[0].body.substring(0,100))}${notices[0].body.length>100?'…':''}</span>
+    </div>` : '';
+
   // ── Overview ──
   document.getElementById('sec-overview').innerHTML = `
     <div class="page-head">
@@ -96,11 +144,7 @@ function renderStudentSections(user, data, notices) {
       <div class="page-sub">Academic snapshot &nbsp;·&nbsp;
         <span style="color:var(--accent);font-weight:600">📚 ${esc(sem)}</span></div>
     </div>
-    ${notices.length ? `
-    <div class="notice-ticker">
-      <span class="notice-ticker-label">📢 Notice</span>
-      <span class="notice-ticker-text">${esc(notices[0].title)} — ${esc(notices[0].body.substring(0,80))}${notices[0].body.length>80?'…':''}</span>
-    </div>` : ''}
+    ${noticeTickerHtml}
     <div class="stat-row">
       <div class="stat-box">
         <div class="stat-val">${hasAtt ? att+'%' : '—'}</div>
@@ -135,17 +179,17 @@ function renderStudentSections(user, data, notices) {
           <p style="font-size:.8rem;color:var(--muted);margin-top:.6rem">
             ${att>=75?'✅ Eligible for exams':att>=50?'⚠️ Below recommended (75%)':'❌ Critically low'}
           </p>`
-        : `<div class="empty"><span class="empty-ico">📅</span>No data yet.</div>`}
+        : `<div class="empty"><span class="empty-ico">📅</span>No data yet — faculty will update this.</div>`}
       </div>
       <div class="card">
         <div class="card-title">📊 Marks</div>
         ${hasMark ? `
           <div class="score-big">
             <div class="score-num" style="color:${scoreColor(mark)}">${mark}%</div>
-            <div class="score-label">Grade ${mark>=75?'A':mark>=60?'B':mark>=50?'C':mark>=40?'D':'F'}</div>
+            <div class="score-label">Overall Score · Grade ${mark>=75?'A':mark>=60?'B':mark>=50?'C':mark>=40?'D':'F'}</div>
           </div>
           ${progBar(mark)}`
-        : `<div class="empty"><span class="empty-ico">📊</span>No data yet.</div>`}
+        : `<div class="empty"><span class="empty-ico">📊</span>No data yet — faculty will update this.</div>`}
       </div>
     </div>
     <div class="grid-2" style="margin-top:1.25rem">
@@ -158,16 +202,14 @@ function renderStudentSections(user, data, notices) {
           : `<div class="empty" style="padding:1rem">No notes yet.</div>`}
       </div>
       <div class="card">
-        <div class="card-title">📢 Notices
+        <div class="card-title">📢 Latest Notices
           <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
         </div>
-        ${notices.length
-          ? notices.slice(0,3).map(n=>`
-            <div class="notice-card-mini">
-              <div class="notice-mini-title">${esc(n.title)}</div>
-              <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}</div>
-            </div>`).join('')
-          : `<div class="empty" style="padding:1rem">No notices yet.</div>`}
+        ${notices.slice(0,3).map(n=>`
+          <div class="notice-card-mini">
+            <div class="notice-mini-title">${esc(n.title)}</div>
+            <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}</div>
+          </div>`).join('') || `<div class="empty" style="padding:1rem">No notices yet.</div>`}
       </div>
     </div>`;
 
@@ -203,7 +245,7 @@ function renderStudentSections(user, data, notices) {
   // ── Attendance ──
   document.getElementById('sec-attendance').innerHTML = `
     <div class="page-head"><div class="page-title">Attendance</div>
-      <div class="page-sub">Semester: <span style="color:var(--accent)">📚 ${esc(sem)}</span></div></div>
+      <div class="page-sub">Your attendance — <span style="color:var(--accent)">📚 ${esc(sem)}</span></div></div>
     <div class="grid-2">
       <div class="card">
         <div class="card-title">📅 Overview</div>
@@ -233,7 +275,7 @@ function renderStudentSections(user, data, notices) {
   // ── Marks ──
   document.getElementById('sec-marks').innerHTML = `
     <div class="page-head"><div class="page-title">Marks</div>
-      <div class="page-sub">Semester: <span style="color:var(--accent)">📚 ${esc(sem)}</span></div></div>
+      <div class="page-sub">Academic performance — <span style="color:var(--accent)">📚 ${esc(sem)}</span></div></div>
     <div class="grid-2">
       <div class="card">
         <div class="card-title">📊 Score</div>
@@ -282,7 +324,7 @@ function renderStudentSections(user, data, notices) {
         <span class="badge badge-violet" style="margin-left:auto">${asgn.length}</span>
       </div>
       ${asgn.length
-        ? `<div class="item-list">${asgn.map(a => asgnRowStudent(a, subs)).join('')}</div>`
+        ? `<div class="item-list">${asgn.map(a=>submittableRow('📝', a, subs, 'assignment')).join('')}</div>`
         : `<div class="empty"><span class="empty-ico">📝</span>No assignments yet.</div>`}
     </div>`;
 
@@ -295,37 +337,38 @@ function renderStudentSections(user, data, notices) {
         <span class="badge badge-green" style="margin-left:auto">${lab.length}</span>
       </div>
       ${lab.length
-        ? `<div class="item-list">${lab.map(l=>itemRowWithViewer('🧪',l)).join('')}</div>`
+        ? `<div class="item-list">${lab.map(l=>submittableRow('🧪', l, subs, 'lab')).join('')}</div>`
         : `<div class="empty"><span class="empty-ico">🔬</span>No lab reports yet.</div>`}
     </div>`;
 
   // ── Notices ──
-  document.getElementById('sec-notices').innerHTML = `
-    <div class="page-head"><div class="page-title">📢 Notice Board</div>
-      <div class="page-sub">Announcements from faculty & admin</div></div>
-    <div class="card">
-      <div class="card-title">Notices
-        <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
-      </div>
-      ${notices.length
-        ? notices.map(n => `
-          <div class="notice-card">
-            <div class="notice-card-top">
-              <div class="notice-card-title">${esc(n.title)}</div>
-              ${n.semester && n.semester !== 'All'
-                ? `<span class="badge badge-blue">${esc(n.semester)}</span>`
-                : `<span class="badge badge-gray">All Semesters</span>`}
-            </div>
-            <div class="notice-card-body">${esc(n.body)}</div>
-            <div class="notice-card-meta">
-              👤 ${esc(n.author)} &nbsp;·&nbsp; 🗓 ${fmtDate(n.createdAt)}
-            </div>
-          </div>`).join('')
-        : `<div class="empty"><span class="empty-ico">📢</span>No notices posted yet.</div>`}
-    </div>`;
+  const noticesEl = document.getElementById('sec-notices');
+  if (noticesEl) {
+    noticesEl.innerHTML = `
+      <div class="page-head"><div class="page-title">📢 Notice Board</div>
+        <div class="page-sub">Announcements from faculty &amp; administration</div></div>
+      <div class="card">
+        <div class="card-title">All Notices
+          <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
+        </div>
+        ${notices.length
+          ? notices.map(n=>`
+            <div class="notice-card">
+              <div class="notice-card-top">
+                <div class="notice-card-title">${esc(n.title)}</div>
+                <span class="badge ${n.semester==='All'?'badge-gray':'badge-blue'}">${esc(n.semester||'All')}</span>
+              </div>
+              <div class="notice-card-body">${esc(n.body)}</div>
+              <div class="notice-card-meta">👤 ${esc(n.author)} &nbsp;·&nbsp; 🗓 ${fmtDate(n.createdAt)}</div>
+            </div>`).join('')
+          : `<div class="empty"><span class="empty-ico">📢</span>No notices posted yet.</div>`}
+      </div>`;
+  }
 }
 
-// ── Item row helpers ──
+// ════════════════════════════════════════════
+// ROW HELPERS
+// ════════════════════════════════════════════
 function itemRow(icon, item) {
   return `<div class="item-row">
     <div class="item-row-left">
@@ -338,96 +381,84 @@ function itemRow(icon, item) {
 
 function itemRowWithViewer(icon, item) {
   const hasFile = !!(item.fileData);
+  // Escape fileData safely for attribute — store in data attr instead of inline
+  const safeId = 'fd-' + Math.random().toString(36).slice(2,8);
+  if (hasFile) window[safeId] = { data: item.fileData, name: item.fileName };
   return `<div class="item-row">
     <div class="item-row-left">
-      <span class="item-row-icon">${hasFile ? '📎' : icon}</span>
+      <span class="item-row-icon">${hasFile?'📎':icon}</span>
       <div style="min-width:0">
-        <div class="item-row-text">${esc(item.text || item)}</div>
-        ${hasFile ? `<div style="font-size:.72rem;color:var(--muted)">${esc(item.fileName||'')} · ${fmtSize(item.fileSize||0)}</div>` : ''}
+        <div class="item-row-text">${esc(item.text||item)}</div>
+        ${hasFile?`<div style="font-size:.72rem;color:var(--muted)">${esc(item.fileName||'')} · ${fmtSize(item.fileSize||0)}</div>`:''}
       </div>
     </div>
     <div class="item-row-right" style="gap:.4rem">
-      ${hasFile ? `
-        <button class="btn btn-outline btn-sm"
-          onclick="openFileViewer('${item.fileData.replace(/'/g,"\\'")}','${esc(item.fileName||'file')}')">
-          👁 View
-        </button>
-        <button class="btn btn-ghost btn-sm"
-          onclick="downloadFile('${item.fileData.replace(/'/g,"\\'")}','${esc(item.fileName||'file')}')">
-          ⬇
-        </button>` : ''}
+      ${hasFile?`
+        <button class="btn btn-outline btn-sm" onclick="openFileViewer(window['${safeId}'].data,window['${safeId}'].name)">👁 View</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadFile(window['${safeId}'].data,window['${safeId}'].name)">⬇</button>`:''}
     </div>
   </div>`;
 }
 
-function asgnRowStudent(item, subs) {
-  const hasFile = !!(item.fileData);
-  const status  = submissionStatus(item, subs);
-  const alreadySubmitted = status.label.startsWith('Submitted');
-  const isClosed = status.label === 'Closed';
-  const canSubmit = !alreadySubmitted && !isClosed;
-  const dueStr = item.dueDate ? `Due: ${fmtDate(item.dueDate)}` : 'No due date';
+function submittableRow(icon, item, subs, type) {
+  const hasFile  = !!(item.fileData);
+  const status   = getSubmissionStatus(item, subs, type);
+  const submitted = status.label.startsWith('Submitted');
+  const closed    = status.label === 'Closed';
+  const canSubmit = !submitted && !closed;
+  const safeId    = 'fd-' + Math.random().toString(36).slice(2,8);
+  const safeItemId = String(item._id || '');
+  const safeDue    = item.dueDate || '';
+  const safeTitle  = (item.text || '').replace(/'/g, '&#39;');
+  if (hasFile) window[safeId] = { data: item.fileData, name: item.fileName };
 
-  return `<div class="item-row asgn-row" style="flex-direction:column;align-items:stretch;gap:.65rem">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+  return `<div class="asgn-row">
+    <div class="asgn-row-top">
       <div class="item-row-left" style="flex:1">
-        <span class="item-row-icon">📝</span>
+        <span class="item-row-icon">${hasFile?'📎':icon}</span>
         <div style="min-width:0">
           <div class="item-row-text">${esc(item.text||'')}</div>
-          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
-            ${dueStr}
-            ${item.allowLate ? ' · <span style="color:var(--green)">Late submissions allowed</span>' : ''}
-          </div>
+          ${item.dueDate?`<div style="font-size:.75rem;color:var(--muted);margin-top:2px">${dueDateStr(item)}
+            ${item.allowLate?'<span style="color:var(--green);margin-left:.4rem">· Late allowed</span>':''}</div>`:''}
         </div>
       </div>
       <span class="badge ${status.cls}">${status.label}</span>
     </div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-      ${hasFile ? `
-        <button class="btn btn-outline btn-sm"
-          onclick="openFileViewer('${item.fileData.replace(/'/g,"\\'")}','${esc(item.fileName||'assignment')}')">
-          👁 View
-        </button>
-        <button class="btn btn-ghost btn-sm"
-          onclick="downloadFile('${item.fileData.replace(/'/g,"\\'")}','${esc(item.fileName||'assignment')}')">
-          ⬇ Download
-        </button>` : ''}
-      ${canSubmit ? `
+    <div class="asgn-row-actions">
+      ${hasFile?`
+        <button class="btn btn-outline btn-sm" onclick="openFileViewer(window['${safeId}'].data,window['${safeId}'].name)">👁 View</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadFile(window['${safeId}'].data,window['${safeId}'].name)">⬇ Download</button>`:''}
+      ${canSubmit?`
         <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0">
           📤 Submit Work
           <input type="file" style="display:none"
-            onchange="submitAssignment(this,'${String(item._id)}','${esc(item.text||'')}','${item.dueDate||''}')">
-        </label>` : ''}
+            onchange="handleSubmit(this,'${safeItemId}','${safeTitle}','${safeDue}','${type}')">
+        </label>`:''}
     </div>
   </div>`;
 }
 
-async function submitAssignment(input, assignmentId, title, dueDate) {
+async function handleSubmit(input, itemId, title, dueDate, type) {
   const file = input.files[0];
   if (!file) return;
   const label = input.closest('label');
+  const origText = label.textContent.trim();
   label.textContent = 'Uploading…';
 
   const fileData = await fileToBase64(file);
-  const result = await apiSubmitAssignment({
-    assignmentId,
-    assignmentTitle: title,
-    fileName: file.name,
-    fileData,
-    fileSize: file.size,
-    dueDate
+  const result = await apiSubmitWork({
+    type, itemId, itemTitle: title,
+    fileName: file.name, fileData, fileSize: file.size, dueDate
   });
 
-  if (result.msg === 'Submitted successfully') {
-    toast(`✅ Submitted! Status: ${result.status}`, 'success');
-    // Refresh data
-    const data    = await apiGetMyData();
-    const notices = await apiGetNotices();
-    const user    = SS.get('ss_current_user');
+  if (result.msg === 'Submitted successfully' || result.status) {
+    toast('✅ Submitted! Status: ' + (result.status || 'submitted'), 'success');
+    const user = SS.get('ss_current_user');
+    const [data, notices] = await Promise.all([apiGetMyData(), apiGetNotices()]);
     renderStudentSections(user, data, notices);
-    switchSec('assignments');
+    switchSec(type === 'assignment' ? 'assignments' : 'lab');
   } else {
     toast(result.msg || 'Submission failed', 'error');
-    label.textContent = '📤 Submit Work';
+    label.textContent = origText;
   }
 }

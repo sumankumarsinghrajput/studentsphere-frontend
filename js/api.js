@@ -11,9 +11,7 @@ function apiHeaders() {
   };
 }
 
-// ══════════════════════════════════
-// USERS
-// ══════════════════════════════════
+// ══ USERS ══════════════════════════════════════════
 async function apiGetUsers() {
   try {
     const res = await fetch(API + '/users', { headers: apiHeaders() });
@@ -48,9 +46,7 @@ async function apiDeleteUser(id) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
-// ══════════════════════════════════
-// STUDENT DATA
-// ══════════════════════════════════
+// ══ STUDENT DATA ═══════════════════════════════════
 async function apiGetMyData() {
   try {
     const res = await fetch(API + '/data/my', { headers: apiHeaders() });
@@ -89,6 +85,7 @@ async function apiUpdateMarks(email, value) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
+// ══ NOTES ══════════════════════════════════════════
 async function apiAddNote(email, text, fileData, fileName, fileSize) {
   try {
     const res = await fetch(API + '/data/notes', {
@@ -109,11 +106,12 @@ async function apiDeleteNote(email, index) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
+// ══ ASSIGNMENTS ════════════════════════════════════
 async function apiAddAssignment(email, text, fileData, fileName, fileSize, dueDate, allowLate) {
   try {
     const res = await fetch(API + '/data/assignments', {
       method: 'POST', headers: apiHeaders(),
-      body: JSON.stringify({ email, text, fileData, fileName, fileSize, dueDate, allowLate })
+      body: JSON.stringify({ email, text, fileData, fileName, fileSize, dueDate: dueDate||null, allowLate: allowLate||false })
     });
     return res.json();
   } catch (e) { return { msg: 'Network error.' }; }
@@ -123,10 +121,7 @@ async function apiUpdateAssignment(email, index, dueDate, allowLate) {
   try {
     const res = await fetch(
       API + '/data/assignments/' + encodeURIComponent(email) + '/' + index,
-      {
-        method: 'PUT', headers: apiHeaders(),
-        body: JSON.stringify({ dueDate, allowLate })
-      }
+      { method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ dueDate, allowLate }) }
     );
     return res.json();
   } catch (e) { return { msg: 'Network error.' }; }
@@ -142,12 +137,23 @@ async function apiDeleteAssignment(email, index) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
-async function apiAddLab(email, text, fileData, fileName, fileSize) {
+// ══ LAB REPORTS ════════════════════════════════════
+async function apiAddLab(email, text, fileData, fileName, fileSize, dueDate, allowLate) {
   try {
     const res = await fetch(API + '/data/lab', {
       method: 'POST', headers: apiHeaders(),
-      body: JSON.stringify({ email, text, fileData, fileName, fileSize })
+      body: JSON.stringify({ email, text, fileData, fileName, fileSize, dueDate: dueDate||null, allowLate: allowLate||false })
     });
+    return res.json();
+  } catch (e) { return { msg: 'Network error.' }; }
+}
+
+async function apiUpdateLab(email, index, dueDate, allowLate) {
+  try {
+    const res = await fetch(
+      API + '/data/lab/' + encodeURIComponent(email) + '/' + index,
+      { method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ dueDate, allowLate }) }
+    );
     return res.json();
   } catch (e) { return { msg: 'Network error.' }; }
 }
@@ -162,10 +168,9 @@ async function apiDeleteLab(email, index) {
   } catch (e) { return { msg: 'Network error.' }; }
 }
 
-// ══════════════════════════════════
-// SUBMISSIONS
-// ══════════════════════════════════
-async function apiSubmitAssignment(payload) {
+// ══ SUBMISSIONS ════════════════════════════════════
+async function apiSubmitWork(payload) {
+  // payload: { type, itemId, itemTitle, fileName, fileData, fileSize, dueDate }
   try {
     const res = await fetch(API + '/data/submit', {
       method: 'POST', headers: apiHeaders(),
@@ -186,9 +191,7 @@ async function apiGetSubmissions(studentEmail) {
   } catch (e) { return []; }
 }
 
-// ══════════════════════════════════
-// NOTICES
-// ══════════════════════════════════
+// ══ NOTICES ════════════════════════════════════════
 async function apiGetNotices() {
   try {
     const res = await fetch(API + '/notices', { headers: apiHeaders() });
