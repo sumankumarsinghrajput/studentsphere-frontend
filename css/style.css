@@ -1655,15 +1655,15 @@ footer span { color: var(--accent); }
   overflow: auto;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   background: #1a1a1a;
   -webkit-overflow-scrolling: touch;
 }
 .file-viewer-frame-wrap {
-  width: 100%;
-  height: 100%;
-  transform-origin: top center;
-  transition: transform 0.2s ease;
+  min-width: 100%;
+  min-height: 100%;
+  position: relative;
+  transition: width 0.2s ease, height 0.2s ease;
 }
 .file-viewer-frame {
   width: 100%;
@@ -1671,6 +1671,8 @@ footer span { color: var(--accent); }
   min-height: calc(100vh - 60px);
   border: none;
   display: block;
+  transform-origin: top left;
+  transition: transform 0.2s ease;
 }
 
 /* ════════════════════════════════════════════════

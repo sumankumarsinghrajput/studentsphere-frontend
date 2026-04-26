@@ -76,9 +76,21 @@ function fvZoom(delta) {
 }
 
 function fvApplyZoom() {
-  const wrap  = document.getElementById('fv-wrap');
+  const frame = document.getElementById('fv-frame');
   const label = document.getElementById('fv-zoom-label');
-  if (wrap)  wrap.style.transform = `scale(${_fvZoom})`;
+  // Apply zoom ONLY to the iframe/file element, not the wrap container
+  // Using CSS zoom property on the frame for proper file zoom behavior
+  if (frame) {
+    frame.style.transformOrigin = 'top left';
+    frame.style.transform = `scale(${_fvZoom})`;
+    // Adjust wrap size so scrollbars appear correctly
+    const wrap = document.getElementById('fv-wrap');
+    if (wrap) {
+      wrap.style.width  = (_fvZoom >= 1) ? (_fvZoom * 100) + '%' : '100%';
+      wrap.style.height = (_fvZoom >= 1) ? (_fvZoom * 100) + '%' : '100%';
+      wrap.style.transform = ''; // reset any wrap transform
+    }
+  }
   if (label) label.textContent = Math.round(_fvZoom * 100) + '%';
 }
 
@@ -145,6 +157,16 @@ function renderStudentSections(user, data, notices) {
         <span style="color:var(--accent);font-weight:600">📚 ${esc(sem)}</span></div>
     </div>
     ${noticeTickerHtml}
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title">📢 Latest Notices
+        <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
+      </div>
+      ${notices.slice(0,3).map(n=>`
+        <div class="notice-card-mini">
+          <div class="notice-mini-title">${esc(n.title)}</div>
+          <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}</div>
+        </div>`).join('') || `<div class="empty" style="padding:1rem">No notices yet.</div>`}
+    </div>
     <div class="stat-row">
       <div class="stat-box">
         <div class="stat-val">${hasAtt ? att+'%' : '—'}</div>
@@ -202,14 +224,14 @@ function renderStudentSections(user, data, notices) {
           : `<div class="empty" style="padding:1rem">No notes yet.</div>`}
       </div>
       <div class="card">
-        <div class="card-title">📢 Latest Notices
-          <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
+        <div class="card-title">📝 Pending Assignments
+          <span class="badge badge-amber" style="margin-left:auto">${asgn.filter(a=>!subs.find(s=>s.itemId===String(a._id)&&s.type==='assignment')).length}</span>
         </div>
-        ${notices.slice(0,3).map(n=>`
+        ${asgn.filter(a=>!subs.find(s=>s.itemId===String(a._id)&&s.type==='assignment')).slice(0,3).map(a=>`
           <div class="notice-card-mini">
-            <div class="notice-mini-title">${esc(n.title)}</div>
-            <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}</div>
-          </div>`).join('') || `<div class="empty" style="padding:1rem">No notices yet.</div>`}
+            <div class="notice-mini-title">${esc(a.text||'')}</div>
+            <div class="notice-mini-meta">${a.dueDate?'Due: '+fmtDate(a.dueDate):'No due date'}</div>
+          </div>`).join('') || `<div class="empty" style="padding:1rem">No pending assignments.</div>`}
       </div>
     </div>`;
 

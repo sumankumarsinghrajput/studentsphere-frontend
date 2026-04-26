@@ -213,32 +213,32 @@ function renderNavUser(user) {
 const MENUS = {
   student: [
     { id: 'overview',    ico: '🏠', lbl: 'Overview'    },
+    { id: 'notices',     ico: '📢', lbl: 'Notices'     },
     { id: 'profile',     ico: '👤', lbl: 'Profile'     },
     { id: 'attendance',  ico: '📅', lbl: 'Attendance'  },
     { id: 'marks',       ico: '📊', lbl: 'Marks'       },
     { id: 'notes',       ico: '📓', lbl: 'Notes'       },
     { id: 'assignments', ico: '📝', lbl: 'Assignments' },
     { id: 'lab',         ico: '🔬', lbl: 'Lab Reports' },
-    { id: 'notices',     ico: '📢', lbl: 'Notices'     },
   ],
   faculty: [
     { id: 'overview',    ico: '🏠', lbl: 'Overview'    },
+    { id: 'notices',     ico: '📢', lbl: 'Notices'     },
     { id: 'students',    ico: '👥', lbl: 'Students'    },
     { id: 'attendance',  ico: '📅', lbl: 'Attendance'  },
     { id: 'marks',       ico: '📊', lbl: 'Marks'       },
     { id: 'notes',       ico: '📓', lbl: 'Notes'       },
     { id: 'assignments', ico: '📝', lbl: 'Assignments' },
     { id: 'lab',         ico: '🔬', lbl: 'Lab Reports' },
-    { id: 'notices',     ico: '📢', lbl: 'Notices'     },
   ],
   admin: [
     { id: 'overview',   ico: '🏠', lbl: 'Overview'                       },
+    { id: 'notices',    ico: '📢', lbl: 'Notices'                        },
     { id: 'pending',    ico: '⏳', lbl: 'Pending Approvals', badge: true },
     { id: 'students',   ico: '👨‍🎓', lbl: 'Students'              },
     { id: 'faculty',    ico: '👩‍🏫', lbl: 'Faculty'               },
     { id: 'all-users',  ico: '👥', lbl: 'All Users'                      },
     { id: 'add-user',   ico: '➕', lbl: 'Add User'                       },
-    { id: 'notices',    ico: '📢', lbl: 'Notices'                        },
   ],
 };
 
