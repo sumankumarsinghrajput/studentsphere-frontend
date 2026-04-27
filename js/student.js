@@ -19,10 +19,19 @@ async function initStudent() {
 
 // ════════════════════════════════════════════
 // FILE VIEWER — fullscreen, zoom, mobile-safe
+// Zoom uses CSS zoom on <img> for images.
+// PDFs open in iframe (no zoom clipping).
 // ════════════════════════════════════════════
 let _fvZoom = 1;
+let _fvIsImage = false;
 
 function openFileViewer(fileData, fileName) {
+  // Detect file type from data URL or file name
+  const isImage = fileData
+    ? /^data:image\//i.test(fileData)
+    : /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(fileName || '');
+  _fvIsImage = isImage;
+
   let overlay = document.getElementById('ss-file-viewer');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -40,23 +49,44 @@ function openFileViewer(fileData, fileName) {
           <button class="btn btn-ghost btn-sm" id="fv-close">✕</button>
         </div>
       </div>
-      <div class="file-viewer-body" id="fv-body">
-        <div class="file-viewer-frame-wrap" id="fv-wrap">
-          <iframe class="file-viewer-frame" id="fv-frame" src="about:blank"></iframe>
-        </div>
-      </div>`;
+      <div class="file-viewer-body" id="fv-body"></div>`;
     document.body.appendChild(overlay);
-
-    document.getElementById('fv-close').onclick    = closeFileViewer;
-    document.getElementById('fv-zoom-in').onclick  = () => fvZoom(0.2);
-    document.getElementById('fv-zoom-out').onclick = () => fvZoom(-0.2);
+    document.getElementById('fv-close').onclick      = closeFileViewer;
+    document.getElementById('fv-zoom-in').onclick    = () => fvZoom(0.25);
+    document.getElementById('fv-zoom-out').onclick   = () => fvZoom(-0.25);
     document.getElementById('fv-zoom-reset').onclick = () => { _fvZoom = 1; fvApplyZoom(); };
   }
 
   _fvZoom = 1;
   document.getElementById('fv-name').textContent = fileName || 'File Viewer';
-  document.getElementById('fv-frame').src = fileData;
   document.getElementById('fv-download').onclick = () => downloadFile(fileData, fileName);
+
+  // Build content area fresh each open
+  const body = document.getElementById('fv-body');
+  if (isImage) {
+    // Image: use <img> with CSS zoom — no clipping, scroll works naturally
+    body.innerHTML = `<div class="fv-img-wrap" id="fv-img-wrap">
+      <img id="fv-img" src="${fileData}" alt="${fileName||''}"
+        style="display:block;max-width:100%;height:auto;border-radius:4px;">
+    </div>`;
+    // Show zoom controls for images
+    document.getElementById('fv-zoom-in').style.display  = '';
+    document.getElementById('fv-zoom-out').style.display = '';
+    document.getElementById('fv-zoom-reset').style.display = '';
+    document.getElementById('fv-zoom-label').style.display = '';
+  } else {
+    // PDF / other: full iframe, browser handles its own zoom
+    body.innerHTML = `<iframe id="fv-frame"
+      src="${fileData}"
+      style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;display:block;">
+    </iframe>`;
+    // Hide zoom controls for PDFs (browser PDF viewer has its own zoom)
+    document.getElementById('fv-zoom-in').style.display  = 'none';
+    document.getElementById('fv-zoom-out').style.display = 'none';
+    document.getElementById('fv-zoom-reset').style.display = 'none';
+    document.getElementById('fv-zoom-label').style.display = 'none';
+  }
+
   fvApplyZoom();
   overlay.classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -66,32 +96,35 @@ function closeFileViewer() {
   const overlay = document.getElementById('ss-file-viewer');
   if (!overlay) return;
   overlay.classList.remove('show');
-  document.getElementById('fv-frame').src = 'about:blank';
+  const body = document.getElementById('fv-body');
+  if (body) body.innerHTML = ''; // clear iframe/img to stop loading
   document.body.style.overflow = '';
 }
 
 function fvZoom(delta) {
-  _fvZoom = Math.min(3, Math.max(0.4, _fvZoom + delta));
+  _fvZoom = Math.min(4, Math.max(0.25, _fvZoom + delta));
   fvApplyZoom();
 }
 
 function fvApplyZoom() {
-  const frame = document.getElementById('fv-frame');
   const label = document.getElementById('fv-zoom-label');
-  // Apply zoom ONLY to the iframe/file element, not the wrap container
-  // Using CSS zoom property on the frame for proper file zoom behavior
-  if (frame) {
-    frame.style.transformOrigin = 'top left';
-    frame.style.transform = `scale(${_fvZoom})`;
-    // Adjust wrap size so scrollbars appear correctly
-    const wrap = document.getElementById('fv-wrap');
-    if (wrap) {
-      wrap.style.width  = (_fvZoom >= 1) ? (_fvZoom * 100) + '%' : '100%';
-      wrap.style.height = (_fvZoom >= 1) ? (_fvZoom * 100) + '%' : '100%';
-      wrap.style.transform = ''; // reset any wrap transform
-    }
-  }
   if (label) label.textContent = Math.round(_fvZoom * 100) + '%';
+
+  if (!_fvIsImage) return; // PDFs: no zoom manipulation
+
+  const img  = document.getElementById('fv-img');
+  const wrap = document.getElementById('fv-img-wrap');
+  if (!img || !wrap) return;
+
+  // CSS zoom: unlike transform:scale, zoom expands the element in the layout
+  // so the scrollable area grows correctly — no clipping at any zoom level
+  img.style.zoom       = _fvZoom;
+  img.style.maxWidth   = 'none'; // allow image to grow beyond container when zoomed in
+  img.style.width      = (100 / _fvZoom) + '%'; // keep image filling width at zoom=1
+  if (_fvZoom <= 1) {
+    img.style.width    = '100%';
+    img.style.maxWidth = '100%';
+  }
 }
 
 function downloadFile(fileData, fileName) {
