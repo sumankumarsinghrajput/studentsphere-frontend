@@ -69,9 +69,19 @@ function openFileViewer(fileData, fileName) {
     document.getElementById('fv-zoom-reset').style.display = '';
     document.getElementById('fv-zoom-label').style.display = '';
   } else {
-    // PDF / other — browser handles its own zoom inside iframe
-    body.innerHTML = `<iframe id="fv-frame" src="${fileData}"
-      style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;display:block;"></iframe>`;
+    // PDF — use <object> which works on mobile browsers; fallback to download link
+    body.innerHTML = `
+      <div class="fv-pdf-wrap" id="fv-pdf-wrap">
+        <object id="fv-object" data="${fileData}" type="application/pdf"
+          style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;display:block;">
+          <div class="fv-pdf-fallback">
+            <div style="font-size:3rem;margin-bottom:1rem">📄</div>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:.5rem">PDF cannot be displayed in browser</div>
+            <div style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Your browser or device may not support inline PDF viewing.</div>
+            <button class="btn btn-primary" onclick="downloadFile('${fileData}','${esc(fileName||'file')}')">⬇ Download PDF</button>
+          </div>
+        </object>
+      </div>`;
     document.getElementById('fv-zoom-in').style.display  = 'none';
     document.getElementById('fv-zoom-out').style.display = 'none';
     document.getElementById('fv-zoom-reset').style.display = 'none';

@@ -675,7 +675,7 @@ function renderFacultyLab() {
 }
 function renderLabSection() { updateTargetDropdown('lab'); loadContentRecords('lab'); }
 
-// ── Load content records — DEDUPLICATED (one file = one entry) ──
+// ── Load content records — DEDUPLICATED + SUBMISSION CONTROL ──
 async function loadContentRecords(type) {
   const sem   = getSelSem(`${type}-sem`);
   const sts   = semStudents(sem);
@@ -687,69 +687,121 @@ async function loadContentRecords(type) {
   recEl.innerHTML = '<div class="empty">Loading…</div>';
   const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
 
-  // Deduplicate: group by title+fileName — same file uploaded to all students = 1 row
-  // Key = title|fileName|fileSize to uniquely identify a file upload
-  const seen   = new Map(); // key → { item, emails[] }
+  // Deduplicate: same file uploaded to multiple students = ONE row
+  const seen = new Map();
   sts.forEach((s, si) => {
     const d     = dataArr[si];
     const items = type === 'notes' ? (d.notes||[]) : type === 'assignments' ? (d.assignments||[]) : (d.lab||[]);
     items.forEach((item, idx) => {
       const key = `${item.text||''}|${item.fileName||''}|${item.fileSize||0}`;
-      if (!seen.has(key)) {
-        seen.set(key, { item, recipients: [{ email: s.email, name: s.name, idx }] });
-      } else {
-        seen.get(key).recipients.push({ email: s.email, name: s.name, idx });
-      }
+      if (!seen.has(key)) seen.set(key, { item, recipients: [{ email: s.email, name: s.name, idx }] });
+      else seen.get(key).recipients.push({ email: s.email, name: s.name, idx });
     });
   });
 
   const uniqueRows = Array.from(seen.values());
   if (cntEl) cntEl.textContent = uniqueRows.length;
-
-  if (!uniqueRows.length) {
-    recEl.innerHTML = `<div class="empty">No ${type} uploaded yet for ${sem}.</div>`;
-    return;
-  }
+  if (!uniqueRows.length) { recEl.innerHTML = `<div class="empty">No ${type} uploaded yet for ${sem}.</div>`; return; }
 
   const icon = type === 'notes' ? '📄' : type === 'assignments' ? '📋' : '🧪';
+  const now  = new Date();
+
   recEl.innerHTML = `<div class="item-list">
-    ${uniqueRows.map(({ item, recipients }) => {
+    ${uniqueRows.map(({ item, recipients }, ri) => {
       const targetLabel = recipients.length === sts.length
         ? `<span class="badge badge-blue">All ${sts.length} students</span>`
         : recipients.map(r => `<span class="badge badge-gray" style="font-size:.65rem">${esc(r.name)}</span>`).join(' ');
-      // For delete: delete from all recipients
-      const delIds = JSON.stringify(recipients.map(r => ({ email: r.email, idx: r.idx })))
-        .replace(/"/g, '&quot;');
+
+      const delIds = JSON.stringify(recipients.map(r => ({ email: r.email, idx: r.idx }))).replace(/"/g,'&quot;');
+
+      // ── Submission control (only for assignments/lab) ──
+      let subControlHtml = '';
+      if (type !== 'notes') {
+        const due          = item.dueDate ? new Date(item.dueDate) : null;
+        const isPastDue    = due && now > due;
+        const daysPastDue  = due ? Math.floor((now - due) / 86400000) : 0;
+        const canReopen    = isPastDue && daysPastDue <= 5;  // within 5 days of deadline
+        const isLate       = item.allowLate;
+        const subEnabled   = !isPastDue || isLate;           // open if not past due, or late allowed
+        const autoDisabled = isPastDue && !isLate && daysPastDue > 5;
+
+        // Status label
+        let subStatusHtml = '';
+        if (!due) {
+          subStatusHtml = `<span class="badge badge-gray">No deadline set</span>`;
+        } else if (autoDisabled) {
+          subStatusHtml = `<span class="badge badge-rose">Submissions Closed (${daysPastDue}d past deadline)</span>`;
+        } else if (isPastDue && isLate) {
+          subStatusHtml = `<span class="badge badge-amber">Late Submissions Open (Day ${daysPastDue}/5)</span>`;
+        } else if (isPastDue) {
+          subStatusHtml = `<span class="badge badge-amber">Past Deadline</span>`;
+        } else {
+          subStatusHtml = `<span class="badge badge-green">Submissions Open</span>`;
+        }
+
+        subControlHtml = `
+          <div class="sub-control-bar">
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+              ${subStatusHtml}
+              ${due ? `<span style="font-size:.75rem;color:var(--muted)">Due: ${fmtDate(item.dueDate)}</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+              ${canReopen || isPastDue ? `
+              <button class="btn btn-sm ${isLate ? 'btn-danger' : 'btn-primary'}"
+                onclick="toggleLateSubmission('${type}',${ri},'${recipients[0].email}',${recipients[0].idx},${isLate})"
+                title="${isLate ? 'Disable late submission' : 'Reopen for 5 days after deadline'}">
+                ${isLate ? '🔒 Close Submissions' : '🔓 Re-open Submissions'}
+              </button>` : ''}
+              ${!due ? `<span style="font-size:.75rem;color:var(--muted)">Set a due date to enable submission control</span>` : ''}
+            </div>
+          </div>`;
+      }
+
       return `
-      <div class="item-row">
-        <div class="item-row-left">
-          <span class="item-row-icon">${item.fileData ? '📎' : icon}</span>
-          <div style="min-width:0">
-            <div class="item-row-text">${esc(item.text||'')}</div>
-            <div style="font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem;margin-top:2px;align-items:center">
-              ${item.fileName ? `📎 ${esc(item.fileName)} (${fmtSize(item.fileSize||0)}) &nbsp;·&nbsp;` : ''}
-              ${targetLabel}
-              ${item.dueDate ? `&nbsp;·&nbsp; Due: ${fmtDate(item.dueDate)}` : ''}
+      <div class="item-row-wrap" id="content-row-${type}-${ri}">
+        <div class="item-row">
+          <div class="item-row-left">
+            <span class="item-row-icon">${item.fileData ? '📎' : icon}</span>
+            <div style="min-width:0">
+              <div class="item-row-text">${esc(item.text||'')}</div>
+              <div style="font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem;margin-top:2px;align-items:center">
+                ${item.fileName ? `📎 ${esc(item.fileName)} (${fmtSize(item.fileSize||0)}) &nbsp;·&nbsp;` : ''}
+                ${targetLabel}
+              </div>
             </div>
           </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${item.fileData ? `<a href="${item.fileData}" download="${esc(item.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>` : ''}
+            <span class="item-row-date">${item.date ? fmtDate(item.date) : ''}</span>
+            <button class="btn btn-danger btn-sm"
+              onclick="deleteContentItemAll('${type}',this.dataset.recipients)"
+              data-recipients="${delIds}">🗑</button>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${item.fileData ? `<a href="${item.fileData}" download="${esc(item.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>` : ''}
-          <span class="item-row-date">${item.date ? fmtDate(item.date) : ''}</span>
-          <button class="btn btn-danger btn-sm"
-            onclick="deleteContentItemAll('${type}', this.dataset.recipients)"
-            data-recipients="${delIds}">🗑</button>
-        </div>
+        ${subControlHtml}
       </div>`;
     }).join('')}
   </div>`;
 }
 
+// Toggle late submission on/off (reopen for 5 days after deadline)
+async function toggleLateSubmission(type, rowIdx, email, itemIdx, currentlyAllowed) {
+  const newAllowLate = !currentlyAllowed;
+  let res;
+  if (type === 'assignments') res = await apiUpdateAssignment(email, itemIdx, undefined, newAllowLate);
+  else if (type === 'lab')    res = await apiUpdateLab(email, itemIdx, undefined, newAllowLate);
+  if (res && (res.msg || res.status !== 'error')) {
+    toast(newAllowLate ? '🔓 Submissions reopened for 5 days!' : '🔒 Submissions closed.', 'success');
+    await loadContentRecords(type);
+  } else {
+    toast('Failed to update.', 'error');
+  }
+}
+
 async function deleteContentItemAll(type, recipientsJson) {
   if (!confirm('Delete this item for all recipients?')) return;
   try {
-    const recipients = JSON.parse(recipientsJson.replace(/&quot;/g, '"'));
-    // Sort by index descending so deleting by index doesn't shift other indices
+    const recipients = JSON.parse(recipientsJson.replace(/&quot;/g,'"'));
     recipients.sort((a, b) => b.idx - a.idx);
     await Promise.all(recipients.map(r => {
       if      (type === 'notes')       return apiDeleteNote(r.email, r.idx);
