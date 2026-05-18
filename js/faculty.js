@@ -87,12 +87,6 @@ function renderFacultyOverview(user) {
         <span class="stat-bg-icon">📓</span>
       </div>
     </div>
-    <div class="card" style="margin-bottom:1.25rem" id="fac-ov-notices-card">
-      <div class="card-title">📢 Notice Board
-        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="switchSec('notices')">Post Notice →</button>
-      </div>
-      <div id="fac-ov-notices-body"><div class="empty" style="padding:.75rem">Loading notices…</div></div>
-    </div>
     <div class="card">
       <div class="card-title">📚 Students by Semester</div>
       <div class="table-wrap">
@@ -118,19 +112,6 @@ function renderFacultyOverview(user) {
     </div>`;
 
   loadOverviewStats(sems);
-  // Load notices for overview notice board
-  apiGetNotices().then(notices => {
-    const el = document.getElementById('fac-ov-notices-body');
-    if (!el) return;
-    if (!notices.length) { el.innerHTML = '<div class="empty" style="padding:.75rem">No notices posted yet.</div>'; return; }
-    el.innerHTML = notices.slice(0,3).map(n=>`
-      <div class="notice-card-mini">
-        <div class="notice-mini-title">${esc(n.title)}</div>
-        <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}
-          <span class="badge ${n.semester==='All'?'badge-gray':'badge-blue'}" style="margin-left:.4rem;font-size:.65rem">${esc(n.semester||'All')}</span>
-        </div>
-      </div>`).join('');
-  });
 }
 
 async function loadOverviewStats(sems) {
@@ -572,12 +553,12 @@ function contentUploadSection(type, icon, label) {
       ${type !== 'notes' ? `
       <div class="upload-row-2" style="margin-bottom:1rem">
         <div class="form-group" style="margin:0">
-          <label>Due Date <span style="color:var(--muted)">(optional)</span></label>
+          <label>Due Date <span style="color:var(--muted);font-size:.8rem">(optional)</span></label>
           <input type="datetime-local" id="${id}-due" class="form-control">
         </div>
-        <div class="form-group" style="margin:0;display:flex;align-items:center;gap:.75rem;padding-top:1.5rem">
-          <input type="checkbox" id="${id}-late" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent)">
-          <label for="${id}-late" style="cursor:pointer;font-weight:600;font-size:.875rem;color:var(--white)">Allow Late Submission</label>
+        <div class="form-group" style="margin:0;display:flex;align-items:center;gap:.75rem;padding-top:1.6rem">
+          <input type="checkbox" id="${id}-late" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+          <label for="${id}-late" style="cursor:pointer;font-size:.875rem;font-weight:600">Allow Late Submission</label>
         </div>
       </div>` : ''}
       <button class="btn btn-primary" id="${id}-upload-btn" onclick="uploadContent('${type}')">
@@ -676,19 +657,9 @@ function renderNotesSection() { updateTargetDropdown('notes'); loadContentRecord
 function renderFacultyAssignments() {
   document.getElementById('sec-assignments').innerHTML =
     contentUploadSection('assignments', '📝', 'Assignments') +
-    `<div class="card" style="margin-bottom:1.25rem">
+    `<div class="card">
       <div class="card-title">📋 Uploaded Assignments <span class="badge badge-violet" id="assignments-count" style="margin-left:.5rem">—</span></div>
       <div id="assignments-records"><div class="empty">Select a semester to view uploaded assignments.</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">📥 Student Submissions
-        <select id="asgn-sub-sem" class="form-control" style="max-width:180px;padding:5px 8px;font-size:.8rem;margin-left:auto"
-          onchange="loadSubmissionsPanel('assignment','asgn-sub-sem','asgn-sub-body')">
-          <option value="">— Select semester —</option>
-          ${[...new Set(_facultyStudents.map(s=>s.semester).filter(Boolean))].sort().map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}
-        </select>
-      </div>
-      <div id="asgn-sub-body"><div class="empty">Select a semester above to view student submissions.</div></div>
     </div>`;
 }
 function renderAssignmentsSection() { updateTargetDropdown('assignments'); loadContentRecords('assignments'); }
@@ -697,24 +668,14 @@ function renderAssignmentsSection() { updateTargetDropdown('assignments'); loadC
 function renderFacultyLab() {
   document.getElementById('sec-lab').innerHTML =
     contentUploadSection('lab', '🔬', 'Lab Reports') +
-    `<div class="card" style="margin-bottom:1.25rem">
+    `<div class="card">
       <div class="card-title">📋 Uploaded Lab Reports <span class="badge badge-green" id="lab-count" style="margin-left:.5rem">—</span></div>
       <div id="lab-records"><div class="empty">Select a semester to view uploaded lab reports.</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">📥 Student Lab Submissions
-        <select id="lab-sub-sem" class="form-control" style="max-width:180px;padding:5px 8px;font-size:.8rem;margin-left:auto"
-          onchange="loadSubmissionsPanel('lab','lab-sub-sem','lab-sub-body')">
-          <option value="">— Select semester —</option>
-          ${[...new Set(_facultyStudents.map(s=>s.semester).filter(Boolean))].sort().map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}
-        </select>
-      </div>
-      <div id="lab-sub-body"><div class="empty">Select a semester above to view student submissions.</div></div>
     </div>`;
 }
 function renderLabSection() { updateTargetDropdown('lab'); loadContentRecords('lab'); }
 
-// ── Load content records ──
+// ── Load content records — DEDUPLICATED (one file = one entry) ──
 async function loadContentRecords(type) {
   const sem   = getSelSem(`${type}-sem`);
   const sts   = semStudents(sem);
@@ -726,158 +687,78 @@ async function loadContentRecords(type) {
   recEl.innerHTML = '<div class="empty">Loading…</div>';
   const dataArr = await Promise.all(sts.map(s => apiGetStudentData(s.email)));
 
-  const rows = [];
+  // Deduplicate: group by title+fileName — same file uploaded to all students = 1 row
+  // Key = title|fileName|fileSize to uniquely identify a file upload
+  const seen   = new Map(); // key → { item, emails[] }
   sts.forEach((s, si) => {
-    const d = dataArr[si];
+    const d     = dataArr[si];
     const items = type === 'notes' ? (d.notes||[]) : type === 'assignments' ? (d.assignments||[]) : (d.lab||[]);
-    items.forEach((item, idx) => rows.push({ s, item, idx }));
+    items.forEach((item, idx) => {
+      const key = `${item.text||''}|${item.fileName||''}|${item.fileSize||0}`;
+      if (!seen.has(key)) {
+        seen.set(key, { item, recipients: [{ email: s.email, name: s.name, idx }] });
+      } else {
+        seen.get(key).recipients.push({ email: s.email, name: s.name, idx });
+      }
+    });
   });
 
-  if (cntEl) cntEl.textContent = rows.length;
+  const uniqueRows = Array.from(seen.values());
+  if (cntEl) cntEl.textContent = uniqueRows.length;
 
-  if (!rows.length) {
+  if (!uniqueRows.length) {
     recEl.innerHTML = `<div class="empty">No ${type} uploaded yet for ${sem}.</div>`;
     return;
   }
 
   const icon = type === 'notes' ? '📄' : type === 'assignments' ? '📋' : '🧪';
   recEl.innerHTML = `<div class="item-list">
-    ${rows.map(({ s, item, idx }) => `
+    ${uniqueRows.map(({ item, recipients }) => {
+      const targetLabel = recipients.length === sts.length
+        ? `<span class="badge badge-blue">All ${sts.length} students</span>`
+        : recipients.map(r => `<span class="badge badge-gray" style="font-size:.65rem">${esc(r.name)}</span>`).join(' ');
+      // For delete: delete from all recipients
+      const delIds = JSON.stringify(recipients.map(r => ({ email: r.email, idx: r.idx })))
+        .replace(/"/g, '&quot;');
+      return `
       <div class="item-row">
         <div class="item-row-left">
           <span class="item-row-icon">${item.fileData ? '📎' : icon}</span>
           <div style="min-width:0">
             <div class="item-row-text">${esc(item.text||'')}</div>
-            <div style="font-size:.72rem;color:var(--muted)">
-              ${esc(s.name)}${item.fileName ? ` · ${esc(item.fileName)} (${fmtSize(item.fileSize||0)})` : ''}
+            <div style="font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem;margin-top:2px;align-items:center">
+              ${item.fileName ? `📎 ${esc(item.fileName)} (${fmtSize(item.fileSize||0)}) &nbsp;·&nbsp;` : ''}
+              ${targetLabel}
+              ${item.dueDate ? `&nbsp;·&nbsp; Due: ${fmtDate(item.dueDate)}` : ''}
             </div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           ${item.fileData ? `<a href="${item.fileData}" download="${esc(item.fileName||'file')}" class="btn btn-outline btn-sm">⬇</a>` : ''}
           <span class="item-row-date">${item.date ? fmtDate(item.date) : ''}</span>
-          <button class="btn btn-danger btn-sm" onclick="deleteContentItem('${type}','${esc(s.email)}',${idx})">🗑</button>
+          <button class="btn btn-danger btn-sm"
+            onclick="deleteContentItemAll('${type}', this.dataset.recipients)"
+            data-recipients="${delIds}">🗑</button>
         </div>
-      </div>`).join('')}
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
-async function deleteContentItem(type, email, index) {
-  if (!confirm('Delete this item?')) return;
-  if      (type === 'notes')       await apiDeleteNote(email, index);
-  else if (type === 'assignments') await apiDeleteAssignment(email, index);
-  else if (type === 'lab')         await apiDeleteLab(email, index);
-  toast('Deleted!', 'success');
-  await loadContentRecords(type);
-}
-
-// ════════════════════════════════════════════
-// SUBMISSIONS PANEL — Faculty view
-// ════════════════════════════════════════════
-async function loadSubmissionsPanel(type, semSelId, bodyId) {
-  const sem  = document.getElementById(semSelId)?.value;
-  const body = document.getElementById(bodyId);
-  if (!body) return;
-  if (!sem) { body.innerHTML = '<div class="empty">Select a semester.</div>'; return; }
-
-  body.innerHTML = '<div class="empty">Loading submissions…</div>';
-  const sts = semStudents(sem);
-  if (!sts.length) { body.innerHTML = '<div class="empty">No students in this semester.</div>'; return; }
-
-  // Fetch all submissions for each student
-  const allSubsArr = await Promise.all(sts.map(s => apiGetSubmissions(s.email)));
-  const rows = [];
-  sts.forEach((s, i) => {
-    (allSubsArr[i] || [])
-      .filter(sub => sub.type === type)
-      .forEach(sub => rows.push({ student: s, sub }));
-  });
-
-  if (!rows.length) {
-    body.innerHTML = `<div class="empty"><span class="empty-ico">📥</span>No ${type} submissions yet for ${sem}.</div>`;
-    return;
-  }
-
-  body.innerHTML = `<div class="item-list">${rows.map(({ student, sub }) => {
-    const safeId = 'sub-' + Math.random().toString(36).slice(2,8);
-    if (sub.fileData) window[safeId] = { data: sub.fileData, name: sub.fileName };
-    const statusCls = sub.status === 'late' ? 'badge-amber' : 'badge-green';
-    const statusLbl = sub.status === 'late' ? '⚠ Late' : '✓ On Time';
-    return `<div class="asgn-row">
-      <div class="asgn-row-top">
-        <div class="item-row-left" style="flex:1">
-          <span class="item-row-icon">📥</span>
-          <div style="min-width:0">
-            <div class="item-row-text">${esc(sub.itemTitle||sub.assignmentTitle||'Untitled')}</div>
-            <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
-              👤 ${esc(student.name)} &nbsp;·&nbsp; 📎 ${esc(sub.fileName||'file')}
-              &nbsp;·&nbsp; 🕐 ${sub.submittedAt ? fmtDate(sub.submittedAt) : ''}
-            </div>
-          </div>
-        </div>
-        <span class="badge ${statusCls}">${statusLbl}</span>
-      </div>
-      <div class="asgn-row-actions">
-        ${sub.fileData ? `
-          <button class="btn btn-outline btn-sm" onclick="openFacultyFileViewer(window['${safeId}'].data,window['${safeId}'].name)">👁 View</button>
-          <a href="${sub.fileData}" download="${esc(sub.fileName||'submission')}" class="btn btn-ghost btn-sm">⬇ Download</a>` : '<span style="color:var(--muted);font-size:.8rem">No file</span>'}
-      </div>
-    </div>`;
-  }).join('')}</div>`;
-}
-
-// Faculty file viewer (reuses same overlay as student, or creates its own)
-function openFacultyFileViewer(fileData, fileName) {
-  let overlay = document.getElementById('ss-file-viewer');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'ss-file-viewer';
-    overlay.className = 'file-viewer-overlay';
-    overlay.innerHTML = `
-      <div class="file-viewer-header">
-        <span class="file-viewer-name" id="fv-name"></span>
-        <div class="file-viewer-controls">
-          <button class="fv-zoom-btn" id="fv-zoom-out" title="Zoom Out">−</button>
-          <span class="fv-zoom-label" id="fv-zoom-label">100%</span>
-          <button class="fv-zoom-btn" id="fv-zoom-in" title="Zoom In">+</button>
-          <button class="fv-zoom-btn" id="fv-zoom-reset" title="Reset Zoom" style="font-size:.7rem;padding:0 4px;width:auto;min-width:32px">↺</button>
-          <a id="fv-download" class="btn btn-outline btn-sm" style="margin-left:.25rem">⬇ Download</a>
-          <button class="btn btn-ghost btn-sm" id="fv-close">✕</button>
-        </div>
-      </div>
-      <div class="file-viewer-body" id="fv-body">
-        <div class="file-viewer-frame-wrap" id="fv-wrap">
-          <iframe class="file-viewer-frame" id="fv-frame" src="about:blank"></iframe>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-    document.getElementById('fv-close').onclick = () => {
-      overlay.classList.remove('show');
-      document.getElementById('fv-frame').src = 'about:blank';
-      document.body.style.overflow = '';
-    };
-    let _zoom = 1;
-    const applyZoom = () => {
-      const wrap = document.getElementById('fv-wrap');
-      const lbl  = document.getElementById('fv-zoom-label');
-      if (wrap) { wrap.style.transform = `scale(${_zoom})`; wrap.style.transformOrigin = 'top center'; }
-      if (lbl) lbl.textContent = Math.round(_zoom * 100) + '%';
-    };
-    document.getElementById('fv-zoom-in').onclick  = () => { _zoom = Math.min(3, _zoom + 0.2); applyZoom(); };
-    document.getElementById('fv-zoom-out').onclick = () => { _zoom = Math.max(0.4, _zoom - 0.2); applyZoom(); };
-    document.getElementById('fv-zoom-reset').onclick = () => { _zoom = 1; applyZoom(); };
-  }
-
-  document.getElementById('fv-name').textContent = fileName || 'File Viewer';
-  document.getElementById('fv-frame').src = fileData;
-  const dl = document.getElementById('fv-download');
-  if (dl) { dl.href = fileData; dl.download = fileName || 'download'; }
-  const wrap = document.getElementById('fv-wrap');
-  const lbl  = document.getElementById('fv-zoom-label');
-  if (wrap) { wrap.style.transform = 'scale(1)'; wrap.style.transformOrigin = 'top center'; }
-  if (lbl) lbl.textContent = '100%';
-  overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+async function deleteContentItemAll(type, recipientsJson) {
+  if (!confirm('Delete this item for all recipients?')) return;
+  try {
+    const recipients = JSON.parse(recipientsJson.replace(/&quot;/g, '"'));
+    // Sort by index descending so deleting by index doesn't shift other indices
+    recipients.sort((a, b) => b.idx - a.idx);
+    await Promise.all(recipients.map(r => {
+      if      (type === 'notes')       return apiDeleteNote(r.email, r.idx);
+      else if (type === 'assignments') return apiDeleteAssignment(r.email, r.idx);
+      else if (type === 'lab')         return apiDeleteLab(r.email, r.idx);
+    }));
+    toast('Deleted!', 'success');
+    await loadContentRecords(type);
+  } catch(e) { toast('Delete failed.', 'error'); }
 }
 
 // ════════════════════════════════════════════

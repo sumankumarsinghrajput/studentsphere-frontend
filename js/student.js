@@ -18,15 +18,13 @@ async function initStudent() {
 }
 
 // ════════════════════════════════════════════
-// FILE VIEWER — fullscreen, zoom, mobile-safe
-// Zoom uses CSS zoom on <img> for images.
-// PDFs open in iframe (no zoom clipping).
+// FILE VIEWER — fullscreen, zoom works on images
+// Images use <img> + CSS zoom. PDFs use iframe.
 // ════════════════════════════════════════════
 let _fvZoom = 1;
 let _fvIsImage = false;
 
 function openFileViewer(fileData, fileName) {
-  // Detect file type from data URL or file name
   const isImage = fileData
     ? /^data:image\//i.test(fileData)
     : /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(fileName || '');
@@ -44,7 +42,7 @@ function openFileViewer(fileData, fileName) {
           <button class="fv-zoom-btn" id="fv-zoom-out" title="Zoom Out">−</button>
           <span class="fv-zoom-label" id="fv-zoom-label">100%</span>
           <button class="fv-zoom-btn" id="fv-zoom-in" title="Zoom In">+</button>
-          <button class="fv-zoom-btn" id="fv-zoom-reset" title="Reset Zoom" style="font-size:.7rem;padding:0 4px;width:auto;min-width:32px">↺</button>
+          <button class="fv-zoom-btn" id="fv-zoom-reset" title="Reset" style="font-size:.7rem;width:auto;min-width:32px;padding:0 4px">↺</button>
           <button class="btn btn-outline btn-sm" id="fv-download" style="margin-left:.25rem">⬇ Download</button>
           <button class="btn btn-ghost btn-sm" id="fv-close">✕</button>
         </div>
@@ -59,28 +57,21 @@ function openFileViewer(fileData, fileName) {
 
   _fvZoom = 1;
   document.getElementById('fv-name').textContent = fileName || 'File Viewer';
-  document.getElementById('fv-download').onclick = () => downloadFile(fileData, fileName);
+  document.getElementById('fv-download').onclick  = () => downloadFile(fileData, fileName);
 
-  // Build content area fresh each open
   const body = document.getElementById('fv-body');
   if (isImage) {
-    // Image: use <img> with CSS zoom — no clipping, scroll works naturally
     body.innerHTML = `<div class="fv-img-wrap" id="fv-img-wrap">
-      <img id="fv-img" src="${fileData}" alt="${fileName||''}"
-        style="display:block;max-width:100%;height:auto;border-radius:4px;">
+      <img id="fv-img" src="${fileData}" alt="${esc(fileName||'file')}">
     </div>`;
-    // Show zoom controls for images
     document.getElementById('fv-zoom-in').style.display  = '';
     document.getElementById('fv-zoom-out').style.display = '';
     document.getElementById('fv-zoom-reset').style.display = '';
     document.getElementById('fv-zoom-label').style.display = '';
   } else {
-    // PDF / other: full iframe, browser handles its own zoom
-    body.innerHTML = `<iframe id="fv-frame"
-      src="${fileData}"
-      style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;display:block;">
-    </iframe>`;
-    // Hide zoom controls for PDFs (browser PDF viewer has its own zoom)
+    // PDF / other — browser handles its own zoom inside iframe
+    body.innerHTML = `<iframe id="fv-frame" src="${fileData}"
+      style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;display:block;"></iframe>`;
     document.getElementById('fv-zoom-in').style.display  = 'none';
     document.getElementById('fv-zoom-out').style.display = 'none';
     document.getElementById('fv-zoom-reset').style.display = 'none';
@@ -97,7 +88,7 @@ function closeFileViewer() {
   if (!overlay) return;
   overlay.classList.remove('show');
   const body = document.getElementById('fv-body');
-  if (body) body.innerHTML = ''; // clear iframe/img to stop loading
+  if (body) body.innerHTML = '';
   document.body.style.overflow = '';
 }
 
@@ -109,22 +100,12 @@ function fvZoom(delta) {
 function fvApplyZoom() {
   const label = document.getElementById('fv-zoom-label');
   if (label) label.textContent = Math.round(_fvZoom * 100) + '%';
-
-  if (!_fvIsImage) return; // PDFs: no zoom manipulation
-
-  const img  = document.getElementById('fv-img');
-  const wrap = document.getElementById('fv-img-wrap');
-  if (!img || !wrap) return;
-
-  // CSS zoom: unlike transform:scale, zoom expands the element in the layout
-  // so the scrollable area grows correctly — no clipping at any zoom level
-  img.style.zoom       = _fvZoom;
-  img.style.maxWidth   = 'none'; // allow image to grow beyond container when zoomed in
-  img.style.width      = (100 / _fvZoom) + '%'; // keep image filling width at zoom=1
-  if (_fvZoom <= 1) {
-    img.style.width    = '100%';
-    img.style.maxWidth = '100%';
-  }
+  if (!_fvIsImage) return;
+  const img = document.getElementById('fv-img');
+  if (!img) return;
+  // CSS zoom expands element in layout — no clipping at any zoom level
+  img.style.zoom     = _fvZoom;
+  img.style.maxWidth = _fvZoom <= 1 ? '100%' : 'none';
 }
 
 function downloadFile(fileData, fileName) {
@@ -190,16 +171,6 @@ function renderStudentSections(user, data, notices) {
         <span style="color:var(--accent);font-weight:600">📚 ${esc(sem)}</span></div>
     </div>
     ${noticeTickerHtml}
-    <div class="card" style="margin-bottom:1.25rem">
-      <div class="card-title">📢 Latest Notices
-        <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
-      </div>
-      ${notices.slice(0,3).map(n=>`
-        <div class="notice-card-mini">
-          <div class="notice-mini-title">${esc(n.title)}</div>
-          <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}</div>
-        </div>`).join('') || `<div class="empty" style="padding:1rem">No notices yet.</div>`}
-    </div>
     <div class="stat-row">
       <div class="stat-box">
         <div class="stat-val">${hasAtt ? att+'%' : '—'}</div>
@@ -257,14 +228,14 @@ function renderStudentSections(user, data, notices) {
           : `<div class="empty" style="padding:1rem">No notes yet.</div>`}
       </div>
       <div class="card">
-        <div class="card-title">📝 Pending Assignments
-          <span class="badge badge-amber" style="margin-left:auto">${asgn.filter(a=>!subs.find(s=>s.itemId===String(a._id)&&s.type==='assignment')).length}</span>
+        <div class="card-title">📢 Latest Notices
+          <span class="badge badge-violet" style="margin-left:auto">${notices.length}</span>
         </div>
-        ${asgn.filter(a=>!subs.find(s=>s.itemId===String(a._id)&&s.type==='assignment')).slice(0,3).map(a=>`
+        ${notices.slice(0,3).map(n=>`
           <div class="notice-card-mini">
-            <div class="notice-mini-title">${esc(a.text||'')}</div>
-            <div class="notice-mini-meta">${a.dueDate?'Due: '+fmtDate(a.dueDate):'No due date'}</div>
-          </div>`).join('') || `<div class="empty" style="padding:1rem">No pending assignments.</div>`}
+            <div class="notice-mini-title">${esc(n.title)}</div>
+            <div class="notice-mini-meta">${esc(n.author)} · ${fmtDate(n.createdAt)}</div>
+          </div>`).join('') || `<div class="empty" style="padding:1rem">No notices yet.</div>`}
       </div>
     </div>`;
 

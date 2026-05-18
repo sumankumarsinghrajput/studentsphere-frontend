@@ -1198,7 +1198,6 @@ footer span { color: var(--accent); }
   .hero { padding: 2rem 0 3rem; }
   .hero-title { font-size: clamp(1.9rem, 6vw, 2.6rem); text-align: center; }
   .hero-desc  { font-size: 0.92rem; text-align: center; }
-  .hero-chip  { display: inline-flex; margin-left: auto; margin-right: auto; }
   .hero-left  { text-align: center; }
   .hero-btns  { flex-direction: column; align-items: center; }
   .hero-btns .btn { width: 100%; max-width: 320px; }
@@ -1667,15 +1666,13 @@ footer span { color: var(--accent); }
   align-items: flex-start;
   justify-content: center;
   min-width: 100%;
-  min-height: 100%;
 }
 .fv-img-wrap img {
   display: block;
   max-width: 100%;
   height: auto;
   border-radius: 4px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-  transition: zoom 0.15s ease;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
 }
 .file-viewer-frame-wrap {
   width: 100%;
@@ -1825,13 +1822,17 @@ footer span { color: var(--accent); }
   .steps-grid  { grid-template-columns: repeat(2, 1fr); }
   .hp-download-inner { grid-template-columns: 1fr; gap: 2.5rem; }
   .hp-download-text .hp-sub { max-width: 100%; }
-  .hp-download-visual { order: -1; }
+  .hp-download-visual { order: 1; }
+  .hp-download-text { order: 0; text-align: center; }
+  .hp-download-text .hp-label { text-align: center; }
+  .hp-download-text .hp-title { text-align: center !important; }
+  .hp-download-text .hp-sub   { text-align: center !important; margin: 0 0 2rem; }
+  .hp-download-btns { justify-content: center; }
 }
 @media (max-width: 768px) {
   .hp-section { padding: 3.5rem 0; }
   .hp-section-head { margin-bottom: 2rem; }
-  .hp-download-btns { flex-direction: column; align-items: flex-start; }
-  .hero-app-strip { gap: 0.75rem; }
+  .hp-download-btns { flex-direction: column; align-items: center; }
   .notice-ticker { display: none; }
   .file-viewer-frame { min-height: calc(100vh - 56px); }
 }
