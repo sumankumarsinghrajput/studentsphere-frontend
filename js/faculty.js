@@ -713,6 +713,9 @@ async function loadContentRecords(type) {
         : recipients.map(r => `<span class="badge badge-gray" style="font-size:.65rem">${esc(r.name)}</span>`).join(' ');
 
       const delIds = JSON.stringify(recipients.map(r => ({ email: r.email, idx: r.idx }))).replace(/"/g,'&quot;');
+      // Store recipients list in window for toggleLateSubmission
+      const _togKey = `_tog_${type}_${ri}`;
+      window[_togKey] = recipients.map(r => ({ email: r.email, idx: r.idx }));
 
       // ── Submission control (only for assignments/lab) ──
       let subControlHtml = '';
@@ -748,8 +751,8 @@ async function loadContentRecords(type) {
             <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
               ${canReopen || isPastDue ? `
               <button class="btn btn-sm ${isLate ? 'btn-danger' : 'btn-primary'}"
-                onclick="toggleLateSubmission('${type}',${ri},'${recipients[0].email}',${recipients[0].idx},${isLate})"
-                title="${isLate ? 'Disable late submission' : 'Reopen for 5 days after deadline'}">
+                onclick="toggleLateSubmission('${type}',${ri},window['${_togKey}'],${isLate})"
+                title="${isLate ? 'Disable late submission' : 'Reopen for late submissions'}">
                 ${isLate ? '🔒 Close Submissions' : '🔓 Re-open Submissions'}
               </button>` : ''}
               ${!due ? `<span style="font-size:.75rem;color:var(--muted)">Set a due date to enable submission control</span>` : ''}
@@ -784,17 +787,35 @@ async function loadContentRecords(type) {
   </div>`;
 }
 
-// Toggle late submission on/off (reopen for 5 days after deadline)
-async function toggleLateSubmission(type, rowIdx, email, itemIdx, currentlyAllowed) {
+// Toggle late submission — updates ALL students who have this item
+async function toggleLateSubmission(type, rowIdx, recipients, currentlyAllowed) {
   const newAllowLate = !currentlyAllowed;
-  let res;
-  if (type === 'assignments') res = await apiUpdateAssignment(email, itemIdx, undefined, newAllowLate);
-  else if (type === 'lab')    res = await apiUpdateLab(email, itemIdx, undefined, newAllowLate);
-  if (res && (res.msg || res.status !== 'error')) {
-    toast(newAllowLate ? '🔓 Submissions reopened for 5 days!' : '🔒 Submissions closed.', 'success');
+
+  if (!recipients || !recipients.length) {
+    toast('No recipients found.', 'error');
+    return;
+  }
+
+  // Update allowLate on every student's copy of this item
+  const results = await Promise.all(
+    recipients.map(r => {
+      if (type === 'assignments') return apiUpdateAssignment(r.email, r.idx, undefined, newAllowLate);
+      if (type === 'lab')         return apiUpdateLab(r.email, r.idx, undefined, newAllowLate);
+      return Promise.resolve({ msg: 'ok' });
+    })
+  );
+
+  const allOk = results.every(r => r && r.msg);
+  if (allOk) {
+    toast(
+      newAllowLate
+        ? `🔓 Late submissions reopened for ${recipients.length} student(s)!`
+        : `🔒 Submissions closed for all students.`,
+      'success'
+    );
     await loadContentRecords(type);
   } else {
-    toast('Failed to update.', 'error');
+    toast('Some updates may have failed. Please refresh and try again.', 'error');
   }
 }
 
