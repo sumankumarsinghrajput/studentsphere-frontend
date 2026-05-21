@@ -39,4 +39,69 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // If user is NOT logged in, nav-right already has Sign In / Get Started from HTML.
   // initHam() has already injected the theme toggle button into it — nothing else to do.
+
+  // ── Scroll-spy: highlight nav link matching current section ──
+  initScrollSpy();
 });
+
+function initScrollSpy() {
+  // Map each nav href anchor to the section element it points to
+  const navLinks = document.querySelectorAll('.nav-links a[href^="#"], .nav-links a[href="index.html"]');
+  if (!navLinks.length) return;
+
+  // Section order matches nav order: hero → features → how-it-works → download
+  const sectionIds = ['hero-anchor', 'features', 'how-it-works', 'download'];
+
+  // The hero section has no id — add one to the hero element
+  const heroEl = document.querySelector('.hero');
+  if (heroEl && !heroEl.id) heroEl.id = 'hero-anchor';
+
+  // Build a map: sectionId → nav link element
+  const linkMap = {};
+  navLinks.forEach(link => {
+    const href = link.getAttribute('href');
+    if (href === 'index.html' || href === '#') {
+      linkMap['hero-anchor'] = link;
+    } else {
+      const id = href.replace('#', '');
+      linkMap[id] = link;
+    }
+  });
+
+  function setActive(id) {
+    navLinks.forEach(l => l.classList.remove('active'));
+    const activeLink = linkMap[id];
+    if (activeLink) activeLink.classList.add('active');
+  }
+
+  // Use IntersectionObserver — fires when section enters viewport
+  // threshold 0.25 = section must be 25% visible to trigger
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        setActive(entry.target.id);
+      }
+    });
+  }, {
+    rootMargin: '-10% 0px -60% 0px',  // trigger when section is in top 30% of viewport
+    threshold: 0
+  });
+
+  sectionIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+
+  // Also handle smooth scroll on anchor clicks and update active immediately
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update active immediately on click without waiting for observer
+        setActive(target.id);
+      }
+    });
+  });
+}
