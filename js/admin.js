@@ -453,10 +453,11 @@ function renderAdminAllUsers() {
                 <td>
                   ${u.role !== 'admin'
                     ? `<div class="tbl-actions">
+                        <button class="btn btn-outline btn-sm" onclick="adminViewProfile('${u._id}')">👤 View</button>
                         <button class="btn btn-outline btn-sm" onclick="adminEditSem('${u._id}','${esc(u.name)}','${esc(u.semester||'')}')">✏️ Sem</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}','${esc(u.name)}')">Delete</button>
                        </div>`
-                    : `<span class="badge badge-gray">Protected</span>`}
+                    : `<div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="adminViewProfile('${u._id}')">👤 View</button><span class="badge badge-gray">Protected</span></div>`}
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -625,4 +626,105 @@ async function adminDeleteNotice(id) {
   toast(res.msg === 'Notice deleted' ? 'Notice deleted.' : (res.msg || 'Failed.'),
         res.msg === 'Notice deleted' ? 'success' : 'error');
   await renderAdminNotices();
+}
+
+// ════════════════════════════════════════════
+// ADMIN — Profile View Modal
+// ════════════════════════════════════════════
+
+async function adminViewProfile(userId) {
+  // Fetch full profile
+  const user = await apiGetUserProfile(userId);
+  if (!user) { toast('Could not load profile.', 'error'); return; }
+
+  // Create modal if not exists
+  let modal = document.getElementById('admin-profile-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'admin-profile-modal';
+    modal.className = 'profile-modal-overlay';
+    modal.innerHTML = `
+      <div class="profile-modal-box">
+        <div class="profile-modal-header">
+          <span class="profile-modal-title" id="apm-title">User Profile</span>
+          <button class="btn btn-ghost btn-sm" onclick="closeAdminProfileModal()">✕ Close</button>
+        </div>
+        <div class="profile-modal-body" id="apm-body"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeAdminProfileModal(); });
+  }
+
+  // Populate content
+  const joined   = user.createdAt ? fmtDate(user.createdAt) : '—';
+  const roleCls  = { student: 'badge-blue', faculty: 'badge-violet', admin: 'badge-green' }[user.role] || 'badge-gray';
+
+  const avatarHtml = user.profileImage
+    ? `<div class="profile-modal-av"><img src="${user.profileImage}" alt="Photo"></div>`
+    : `<div class="profile-modal-av">${initials(user.name)}</div>`;
+
+  // Build field list based on role
+  const fields = [
+    ['Name',    user.name],
+    ['Email',   user.email],
+    ['Role',    user.role],
+    ['Status',  user.isApproved ? '✓ Approved' : '⏳ Pending'],
+    ['Joined',  joined],
+  ];
+
+  if (user.role === 'student') {
+    fields.push(
+      ['Semester',   user.semester || '—'],
+      ['Roll Number', user.rollNumber || '—'],
+      ['Department', user.department || '—'],
+    );
+  }
+  if (user.role === 'faculty') {
+    fields.push(
+      ['Faculty ID',    user.facultyId     || '—'],
+      ['Department',    user.department    || '—'],
+      ['Subject',       user.subject       || '—'],
+      ['Qualification', user.qualification || '—'],
+      ['Experience',    user.experience    || '—'],
+    );
+  }
+
+  // Shared fields
+  fields.push(
+    ['Phone',   user.phone   || '—'],
+    ['Gender',  user.gender  || '—'],
+    ['DOB',     user.dob     || '—'],
+    ['Address', user.address || '—'],
+  );
+  if (user.bio) fields.push(['Bio', user.bio]);
+
+  document.getElementById('apm-title').textContent = user.name + ' — Profile';
+  document.getElementById('apm-body').innerHTML = `
+    <div class="profile-modal-banner">
+      ${avatarHtml}
+      <div>
+        <div class="profile-name">${esc(user.name)}</div>
+        <div class="profile-email">${esc(user.email)}</div>
+        <div style="display:flex;gap:.4rem;margin-top:6px;flex-wrap:wrap">
+          <span class="badge ${roleCls}">${user.role}</span>
+          <span class="badge ${user.isApproved ? 'badge-green' : 'badge-amber'}">${user.isApproved ? 'Approved' : 'Pending'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="profile-detail-list">
+      ${fields.map(([k,v]) => `
+        <div class="profile-detail-row">
+          <span class="profile-detail-key">${k}</span>
+          <span class="profile-detail-val${(!v || v==='—') ? ' empty-val' : ''}">${esc(v||'—')}</span>
+        </div>`).join('')}
+    </div>`;
+
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAdminProfileModal() {
+  const modal = document.getElementById('admin-profile-modal');
+  if (modal) modal.classList.remove('show');
+  document.body.style.overflow = '';
 }

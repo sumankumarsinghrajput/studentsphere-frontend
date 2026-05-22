@@ -218,3 +218,30 @@ async function apiDeleteNotice(id) {
     return res.json();
   } catch (e) { return { msg: 'Network error.' }; }
 }
+
+// ══ PROFILE ════════════════════════════════════════
+async function apiUpdateProfile(data) {
+  try {
+    const res = await fetch(API + '/users/me/profile', {
+      method: 'PUT', headers: apiHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  } catch (e) { return { msg: 'Network error.' }; }
+}
+
+async function apiGetUserProfile(userId) {
+  try {
+    const res = await fetch(API + '/users/profile/' + userId, { headers: apiHeaders() });
+    if (!res.ok) return null;
+    return res.json();
+  } catch (e) { return null; }
+}
+
+async function apiGetMe() {
+  try {
+    const res = await fetch(API + '/users/me', { headers: apiHeaders() });
+    if (!res.ok) return null;
+    return res.json();
+  } catch (e) { return null; }
+}

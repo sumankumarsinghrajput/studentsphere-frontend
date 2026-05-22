@@ -250,33 +250,7 @@ function renderStudentSections(user, data, notices) {
     </div>`;
 
   // ── Profile ──
-  document.getElementById('sec-profile').innerHTML = `
-    <div class="page-head"><div class="page-title">My Profile</div>
-      <div class="page-sub">Your account details</div></div>
-    <div class="profile-banner">
-      <div class="profile-av">${initials(user.name)}</div>
-      <div>
-        <div class="profile-name">${esc(user.name)}</div>
-        <div class="profile-email">${esc(user.email)}</div>
-        <div style="display:flex;gap:.5rem;margin-top:6px;flex-wrap:wrap">
-          <span class="badge badge-blue">Student</span>
-          <span class="badge badge-violet">📚 ${esc(sem)}</span>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">📋 Details</div>
-      <div class="detail-grid">
-        <div class="detail-item"><div class="detail-label">Full Name</div>
-          <div class="detail-val">${esc(user.name)}</div></div>
-        <div class="detail-item"><div class="detail-label">Email</div>
-          <div class="detail-val">${esc(user.email)}</div></div>
-        <div class="detail-item"><div class="detail-label">Role</div>
-          <div class="detail-val">Student</div></div>
-        <div class="detail-item"><div class="detail-label">Semester</div>
-          <div class="detail-val" style="color:var(--accent);font-weight:600">📚 ${esc(sem)}</div></div>
-      </div>
-    </div>`;
+  renderStudentProfile(user);
 
   // ── Attendance ──
   document.getElementById('sec-attendance').innerHTML = `
@@ -496,5 +470,192 @@ async function handleSubmit(input, itemId, title, dueDate, type) {
   } else {
     toast(result.msg || 'Submission failed', 'error');
     label.textContent = origText;
+  }
+}
+
+// ════════════════════════════════════════════
+// STUDENT PROFILE SYSTEM
+// ════════════════════════════════════════════
+
+function profileAvatarHTML(user, size = 96, editable = false) {
+  const sz = size + 'px';
+  const imgHtml = user.profileImage
+    ? `<img src="${user.profileImage}" class="profile-photo" style="width:${sz};height:${sz}" alt="Profile">`
+    : `<div class="profile-av-initials" style="width:${sz};height:${sz};font-size:${Math.round(size*0.35)}px">${initials(user.name)}</div>`;
+
+  if (!editable) return `<div class="profile-avatar-wrap" style="width:${sz};height:${sz}">${imgHtml}</div>`;
+
+  return `
+    <div class="profile-avatar-wrap" style="width:${sz};height:${sz}">
+      ${imgHtml}
+      <label class="profile-photo-btn" title="Change photo">
+        📷
+        <input type="file" class="profile-photo-input" accept="image/*"
+          onchange="handleProfilePhotoChange(this)">
+      </label>
+    </div>`;
+}
+
+async function renderStudentProfile(user) {
+  // Fetch fresh profile from server to get all extended fields
+  const freshUser = await apiGetMe() || user;
+  _studentProfileCache = freshUser;
+
+  const el = document.getElementById('sec-profile');
+  if (!el) return;
+
+  const joined = freshUser.createdAt ? fmtDate(freshUser.createdAt) : '—';
+
+  el.innerHTML = `
+    <div class="page-head">
+      <div class="page-title">My Profile</div>
+      <div class="page-sub">View and edit your personal information</div>
+    </div>
+
+    <!-- Banner -->
+    <div class="profile-banner">
+      ${profileAvatarHTML(freshUser, 96, true)}
+      <div class="profile-banner-info">
+        <div class="profile-name">${esc(freshUser.name)}</div>
+        <div class="profile-email">${esc(freshUser.email)}</div>
+        <div style="display:flex;gap:.5rem;margin-top:6px;flex-wrap:wrap">
+          <span class="badge badge-blue">Student</span>
+          <span class="badge badge-violet">📚 ${esc(freshUser.semester || '—')}</span>
+          <span class="badge ${freshUser.isApproved ? 'badge-green' : 'badge-amber'}">${freshUser.isApproved ? '✓ Approved' : '⏳ Pending'}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title" style="justify-content:space-between">
+        ✏️ Edit Profile
+        <button class="btn btn-primary btn-sm" onclick="saveStudentProfile()">💾 Save Changes</button>
+      </div>
+      <div id="profile-alert"></div>
+      <div class="profile-form-grid">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" class="form-control" value="${esc(freshUser.name)}" disabled
+            style="opacity:.6;cursor:not-allowed" title="Name cannot be changed here">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" class="form-control" value="${esc(freshUser.email)}" disabled
+            style="opacity:.6;cursor:not-allowed">
+        </div>
+        <div class="form-group">
+          <label>Roll Number</label>
+          <input type="text" id="pf-roll" class="form-control"
+            placeholder="e.g. CS2021001" value="${esc(freshUser.rollNumber||'')}">
+        </div>
+        <div class="form-group">
+          <label>Department / Branch</label>
+          <input type="text" id="pf-dept" class="form-control"
+            placeholder="e.g. Computer Science" value="${esc(freshUser.department||'')}">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="pf-phone" class="form-control"
+            placeholder="e.g. +91 9876543210" value="${esc(freshUser.phone||'')}">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="pf-gender" class="form-control">
+            <option value="">Select gender</option>
+            <option value="Male"   ${freshUser.gender==='Male'   ?'selected':''}>Male</option>
+            <option value="Female" ${freshUser.gender==='Female' ?'selected':''}>Female</option>
+            <option value="Other"  ${freshUser.gender==='Other'  ?'selected':''}>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" id="pf-dob" class="form-control" value="${esc(freshUser.dob||'')}">
+        </div>
+        <div class="form-group">
+          <label>Joined On</label>
+          <input type="text" class="form-control" value="${joined}" disabled style="opacity:.6">
+        </div>
+        <div class="form-group profile-form-full">
+          <label>Address</label>
+          <input type="text" id="pf-address" class="form-control"
+            placeholder="Your address" value="${esc(freshUser.address||'')}">
+        </div>
+        <div class="form-group profile-form-full">
+          <label>Bio / About Me</label>
+          <textarea id="pf-bio" class="form-control" rows="2"
+            style="resize:vertical;font-family:inherit"
+            placeholder="Write something about yourself…">${esc(freshUser.bio||'')}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Read-only details card -->
+    <div class="card">
+      <div class="card-title">📋 Account Details</div>
+      <div class="profile-detail-list">
+        ${profileDetailRow('Role', 'Student')}
+        ${profileDetailRow('Semester', freshUser.semester || '—')}
+        ${profileDetailRow('Account Status', freshUser.isApproved ? '✓ Active' : '⏳ Pending Approval')}
+        ${profileDetailRow('Member Since', joined)}
+      </div>
+    </div>`;
+}
+
+function profileDetailRow(key, val) {
+  const isEmpty = !val || val === '—';
+  return `<div class="profile-detail-row">
+    <span class="profile-detail-key">${key}</span>
+    <span class="profile-detail-val${isEmpty ? ' empty-val' : ''}">${val || '—'}</span>
+  </div>`;
+}
+
+let _studentProfileCache = null;
+
+async function handleProfilePhotoChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    toast('Image too large. Max 2MB.', 'error');
+    return;
+  }
+  const dataUrl = await fileToBase64(file);
+  const res = await apiUpdateProfile({ profileImage: dataUrl });
+  if (res.msg === 'Profile updated') {
+    toast('✅ Profile photo updated!', 'success');
+    // Update cached user and re-render
+    const user = SS.get('ss_current_user');
+    user.profileImage = dataUrl;
+    SS.set('ss_current_user', user);
+    renderStudentProfile(user);
+  } else {
+    toast(res.msg || 'Failed to update photo.', 'error');
+  }
+}
+
+async function saveStudentProfile() {
+  const data = {
+    rollNumber: document.getElementById('pf-roll')?.value.trim()    || '',
+    department: document.getElementById('pf-dept')?.value.trim()    || '',
+    phone:      document.getElementById('pf-phone')?.value.trim()   || '',
+    gender:     document.getElementById('pf-gender')?.value         || '',
+    dob:        document.getElementById('pf-dob')?.value            || '',
+    address:    document.getElementById('pf-address')?.value.trim() || '',
+    bio:        document.getElementById('pf-bio')?.value.trim()     || '',
+  };
+
+  const btn = document.querySelector('#sec-profile .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  const res = await apiUpdateProfile(data);
+
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Save Changes'; }
+
+  if (res.msg === 'Profile updated') {
+    toast('✅ Profile saved!', 'success');
+    const user = SS.get('ss_current_user');
+    renderStudentProfile(user);
+  } else {
+    showAlert('profile-alert', res.msg || 'Failed to save.', 'error');
   }
 }

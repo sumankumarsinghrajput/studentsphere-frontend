@@ -24,6 +24,7 @@ async function initFaculty() {
   renderFacultyAttendance();
   renderFacultyMarks();
   renderFacultyNotes();
+  renderFacultyProfile();
   renderFacultyAssignments();
   renderFacultyLab();
   renderFacultyNotices();
@@ -915,4 +916,180 @@ async function deleteFacultyNotice(id) {
   toast(res.msg === 'Notice deleted' ? 'Notice deleted.' : (res.msg||'Failed.'),
         res.msg === 'Notice deleted' ? 'success' : 'error');
   await renderFacultyNotices();
+}
+
+// ════════════════════════════════════════════
+// FACULTY PROFILE SYSTEM
+// ════════════════════════════════════════════
+
+async function renderFacultyProfile() {
+  const el = document.getElementById('sec-profile');
+  if (!el) return;
+
+  const freshUser = await apiGetMe() || _facultyUser;
+  const joined = freshUser.createdAt ? fmtDate(freshUser.createdAt) : '—';
+
+  el.innerHTML = `
+    <div class="page-head">
+      <div class="page-title">My Profile</div>
+      <div class="page-sub">View and manage your faculty profile</div>
+    </div>
+
+    <div class="profile-banner">
+      ${profileAvatarHTML(freshUser, 96, true)}
+      <div class="profile-banner-info">
+        <div class="profile-name">${esc(freshUser.name)}</div>
+        <div class="profile-email">${esc(freshUser.email)}</div>
+        <div style="display:flex;gap:.5rem;margin-top:6px;flex-wrap:wrap">
+          <span class="badge badge-violet">Faculty</span>
+          ${freshUser.department ? `<span class="badge badge-blue">${esc(freshUser.department)}</span>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title" style="justify-content:space-between">
+        ✏️ Edit Profile
+        <button class="btn btn-primary btn-sm" onclick="saveFacultyProfile()">💾 Save Changes</button>
+      </div>
+      <div id="profile-alert"></div>
+      <div class="profile-form-grid">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" class="form-control" value="${esc(freshUser.name)}" disabled style="opacity:.6">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" class="form-control" value="${esc(freshUser.email)}" disabled style="opacity:.6">
+        </div>
+        <div class="form-group">
+          <label>Faculty ID</label>
+          <input type="text" id="fpf-id" class="form-control"
+            placeholder="e.g. FAC001" value="${esc(freshUser.facultyId||'')}">
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="fpf-dept" class="form-control"
+            placeholder="e.g. Computer Science" value="${esc(freshUser.department||'')}">
+        </div>
+        <div class="form-group">
+          <label>Subject / Specialization</label>
+          <input type="text" id="fpf-subject" class="form-control"
+            placeholder="e.g. Data Structures" value="${esc(freshUser.subject||'')}">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="fpf-phone" class="form-control"
+            placeholder="+91 9876543210" value="${esc(freshUser.phone||'')}">
+        </div>
+        <div class="form-group">
+          <label>Qualification</label>
+          <input type="text" id="fpf-qual" class="form-control"
+            placeholder="e.g. M.Tech, PhD" value="${esc(freshUser.qualification||'')}">
+        </div>
+        <div class="form-group">
+          <label>Experience</label>
+          <input type="text" id="fpf-exp" class="form-control"
+            placeholder="e.g. 5 years" value="${esc(freshUser.experience||'')}">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="fpf-gender" class="form-control">
+            <option value="">Select</option>
+            <option value="Male"   ${freshUser.gender==='Male'   ?'selected':''}>Male</option>
+            <option value="Female" ${freshUser.gender==='Female' ?'selected':''}>Female</option>
+            <option value="Other"  ${freshUser.gender==='Other'  ?'selected':''}>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" id="fpf-dob" class="form-control" value="${esc(freshUser.dob||'')}">
+        </div>
+        <div class="form-group profile-form-full">
+          <label>Address</label>
+          <input type="text" id="fpf-address" class="form-control"
+            placeholder="Your address" value="${esc(freshUser.address||'')}">
+        </div>
+        <div class="form-group profile-form-full">
+          <label>Bio / About</label>
+          <textarea id="fpf-bio" class="form-control" rows="2"
+            style="resize:vertical;font-family:inherit"
+            placeholder="Brief description about yourself…">${esc(freshUser.bio||'')}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Account Details</div>
+      <div class="profile-detail-list">
+        ${facultyDetailRow('Role', 'Faculty')}
+        ${facultyDetailRow('Joined', joined)}
+        ${facultyDetailRow('Status', '✓ Active')}
+      </div>
+    </div>`;
+}
+
+function facultyDetailRow(key, val) {
+  return `<div class="profile-detail-row">
+    <span class="profile-detail-key">${key}</span>
+    <span class="profile-detail-val">${val || '—'}</span>
+  </div>`;
+}
+
+// Shared profile avatar helper (used by student.js too via global scope)
+function profileAvatarHTML(user, size, editable) {
+  const sz = size + 'px';
+  const imgHtml = user.profileImage
+    ? `<img src="${user.profileImage}" class="profile-photo" style="width:${sz};height:${sz}" alt="Profile">`
+    : `<div class="profile-av-initials" style="width:${sz};height:${sz};font-size:${Math.round(size*0.35)}px">${initials(user.name)}</div>`;
+
+  if (!editable) return `<div class="profile-avatar-wrap" style="width:${sz};height:${sz}">${imgHtml}</div>`;
+
+  return `<div class="profile-avatar-wrap" style="width:${sz};height:${sz}">
+    ${imgHtml}
+    <label class="profile-photo-btn" title="Change photo">
+      📷
+      <input type="file" class="profile-photo-input" accept="image/*"
+        onchange="handleFacultyPhotoChange(this)">
+    </label>
+  </div>`;
+}
+
+async function handleFacultyPhotoChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Image too large. Max 2MB.', 'error'); return; }
+  const dataUrl = await fileToBase64(file);
+  const res = await apiUpdateProfile({ profileImage: dataUrl });
+  if (res.msg === 'Profile updated') {
+    toast('✅ Photo updated!', 'success');
+    renderFacultyProfile();
+  } else {
+    toast(res.msg || 'Failed.', 'error');
+  }
+}
+
+async function saveFacultyProfile() {
+  const data = {
+    facultyId:     document.getElementById('fpf-id')?.value.trim()      || '',
+    department:    document.getElementById('fpf-dept')?.value.trim()     || '',
+    subject:       document.getElementById('fpf-subject')?.value.trim()  || '',
+    phone:         document.getElementById('fpf-phone')?.value.trim()    || '',
+    qualification: document.getElementById('fpf-qual')?.value.trim()     || '',
+    experience:    document.getElementById('fpf-exp')?.value.trim()      || '',
+    gender:        document.getElementById('fpf-gender')?.value          || '',
+    dob:           document.getElementById('fpf-dob')?.value             || '',
+    address:       document.getElementById('fpf-address')?.value.trim()  || '',
+    bio:           document.getElementById('fpf-bio')?.value.trim()      || '',
+  };
+  const btn = document.querySelector('#sec-profile .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const res = await apiUpdateProfile(data);
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Save Changes'; }
+  if (res.msg === 'Profile updated') {
+    toast('✅ Profile saved!', 'success');
+    renderFacultyProfile();
+  } else {
+    showAlert('profile-alert', res.msg || 'Failed.', 'error');
+  }
 }

@@ -224,6 +224,7 @@ const MENUS = {
   faculty: [
     { id: 'overview',    ico: '🏠', lbl: 'Overview'    },
     { id: 'notices',     ico: '📢', lbl: 'Notices'     },
+    { id: 'profile',     ico: '👤', lbl: 'My Profile'  },
     { id: 'students',    ico: '👥', lbl: 'Students'    },
     { id: 'attendance',  ico: '📅', lbl: 'Attendance'  },
     { id: 'marks',       ico: '📊', lbl: 'Marks'       },
