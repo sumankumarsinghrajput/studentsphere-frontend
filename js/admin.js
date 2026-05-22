@@ -224,7 +224,7 @@ async function approveUser(id, name) {
     const data = await res.json();
 
     if (res.ok) {
-      toast(`✅ ${name} approved! They can now log in.`, 'success');
+      toast(`${name} approved! They can now log in.`, 'success');
       await refreshAdminData();
     } else {
       toast(data.msg || 'Failed to approve.', 'error');
@@ -326,6 +326,7 @@ async function renderAdminStudents() {
                   <td style="font-size:.82rem;color:var(--muted)">${s.createdAt ? fmtDate(s.createdAt) : '—'}</td>
                   <td>
                     <div class="tbl-actions">
+                      <button class="btn btn-outline btn-sm" onclick="adminViewProfile('${s._id}')">👤 View</button>
                       <button class="btn btn-outline btn-sm" onclick="adminEditSem('${s._id}','${esc(s.name)}','${esc(s.semester||'')}')">✏️ Sem</button>
                       <button class="btn btn-danger btn-sm" onclick="deleteUser('${s._id}','${esc(s.name)}')">Delete</button>
                     </div>
@@ -365,7 +366,7 @@ async function promoteAll(fromSem, toSem, count) {
     students: students.map(s => s._id)
   });
 
-  toast(`✅ Promoted ${succeeded} students to ${toSem}!`, 'success');
+  toast(`Promoted ${succeeded} students to ${toSem}!`, 'success');
   await refreshAdminData();
 }
 
@@ -417,6 +418,7 @@ function renderAdminFaculty() {
                   <td style="font-size:.82rem;color:var(--muted)">${f.createdAt ? fmtDate(f.createdAt) : '—'}</td>
                   <td>
                     <div class="tbl-actions">
+                      <button class="btn btn-outline btn-sm" onclick="adminViewProfile('${f._id}')">👤 View</button>
                       <button class="btn btn-outline btn-sm" onclick="adminEditSem('${f._id}','${esc(f.name)}','${esc(f.semester||'')}')">✏️ Sem</button>
                       <button class="btn btn-danger btn-sm" onclick="deleteUser('${f._id}','${esc(f.name)}')">Delete</button>
                     </div>

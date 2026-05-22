@@ -462,7 +462,7 @@ async function handleSubmit(input, itemId, title, dueDate, type) {
   });
 
   if (result.msg === 'Submitted successfully' || result.status) {
-    toast('✅ Submitted! Status: ' + (result.status || 'submitted'), 'success');
+    toast('Submitted! Status: ' + (result.status || 'submitted'), 'success');
     const user = SS.get('ss_current_user');
     const [data, notices] = await Promise.all([apiGetMyData(), apiGetNotices()]);
     renderStudentSections(user, data, notices);
@@ -622,7 +622,7 @@ async function handleProfilePhotoChange(input) {
   const dataUrl = await fileToBase64(file);
   const res = await apiUpdateProfile({ profileImage: dataUrl });
   if (res.msg === 'Profile updated') {
-    toast('✅ Profile photo updated!', 'success');
+    toast('Profile photo updated!', 'success');
     // Update cached user and re-render
     const user = SS.get('ss_current_user');
     user.profileImage = dataUrl;
@@ -652,7 +652,7 @@ async function saveStudentProfile() {
   if (btn) { btn.disabled = false; btn.textContent = '💾 Save Changes'; }
 
   if (res.msg === 'Profile updated') {
-    toast('✅ Profile saved!', 'success');
+    toast('Profile saved!', 'success');
     const user = SS.get('ss_current_user');
     renderStudentProfile(user);
   } else {

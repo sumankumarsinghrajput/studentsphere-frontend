@@ -189,10 +189,13 @@ async function loadFacStudents() {
                 <td id="stu-att-${i}">${attBadge(d.attendance)}</td>
                 <td id="stu-marks-${i}">${attBadge(d.marks)}</td>
                 <td>
-                  <button class="btn btn-outline btn-sm" id="stu-edit-btn-${i}"
-                    onclick="toggleStudentEdit(${i},'${esc(s.email)}',${d.attendance??'null'},${d.marks??'null'})">
-                    ✏️ Edit
-                  </button>
+                  <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+                    <button class="btn btn-outline btn-sm" onclick="facultyViewStudentProfile('${s._id}')">👤 Profile</button>
+                    <button class="btn btn-outline btn-sm" id="stu-edit-btn-${i}"
+                      onclick="toggleStudentEdit(${i},'${esc(s.email)}',${d.attendance??'null'},${d.marks??'null'})">
+                      ✏️ Edit
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr id="stu-edit-row-${i}" style="display:none">
@@ -900,7 +903,7 @@ async function postNotice() {
   btn.disabled = true; btn.textContent = 'Posting…';
   const res = await apiCreateNotice(title, body, sem);
   if (res.msg === 'Notice posted') {
-    toast('✅ Notice posted!', 'success');
+    toast('Notice posted!', 'success');
     document.getElementById('notice-title').value = '';
     document.getElementById('notice-body').value  = '';
     await renderFacultyNotices();
@@ -1062,7 +1065,7 @@ async function handleFacultyPhotoChange(input) {
   const dataUrl = await fileToBase64(file);
   const res = await apiUpdateProfile({ profileImage: dataUrl });
   if (res.msg === 'Profile updated') {
-    toast('✅ Photo updated!', 'success');
+    toast('Photo updated!', 'success');
     renderFacultyProfile();
   } else {
     toast(res.msg || 'Failed.', 'error');
@@ -1087,9 +1090,90 @@ async function saveFacultyProfile() {
   const res = await apiUpdateProfile(data);
   if (btn) { btn.disabled = false; btn.textContent = '💾 Save Changes'; }
   if (res.msg === 'Profile updated') {
-    toast('✅ Profile saved!', 'success');
+    toast('Profile saved!', 'success');
     renderFacultyProfile();
   } else {
     showAlert('profile-alert', res.msg || 'Failed.', 'error');
   }
+}
+
+// ════════════════════════════════════════════
+// FACULTY — View Student Profile Modal
+// ════════════════════════════════════════════
+
+async function facultyViewStudentProfile(userId) {
+  const user = await apiGetUserProfile(userId);
+  if (!user) { toast('Could not load student profile.', 'error'); return; }
+  showProfileModal(user);
+}
+
+function showProfileModal(user) {
+  let modal = document.getElementById('fac-profile-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'fac-profile-modal';
+    modal.className = 'profile-modal-overlay';
+    modal.innerHTML = `
+      <div class="profile-modal-box">
+        <div class="profile-modal-header">
+          <span class="profile-modal-title" id="fpm-title">Profile</span>
+          <button class="btn btn-ghost btn-sm" onclick="closeFacProfileModal()">✕ Close</button>
+        </div>
+        <div class="profile-modal-body" id="fpm-body"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeFacProfileModal(); });
+  }
+
+  const joined  = user.createdAt ? fmtDate(user.createdAt) : '—';
+  const roleCls = { student: 'badge-blue', faculty: 'badge-violet', admin: 'badge-green' }[user.role] || 'badge-gray';
+
+  const avatarHtml = user.profileImage
+    ? `<div class="profile-modal-av"><img src="${user.profileImage}" alt="Photo"></div>`
+    : `<div class="profile-modal-av">${initials(user.name)}</div>`;
+
+  const fields = [
+    ['Full Name',         user.name],
+    ['Email',             user.email],
+    ['Role',              user.role],
+    ['Semester',          user.semester    || '—'],
+    ['Roll Number',       user.rollNumber  || '—'],
+    ['Department',        user.department  || '—'],
+    ['Phone',             user.phone       || '—'],
+    ['Gender',            user.gender      || '—'],
+    ['Date of Birth',     user.dob         || '—'],
+    ['Address',           user.address     || '—'],
+    ['Member Since',      joined],
+  ];
+  if (user.bio) fields.push(['Bio', user.bio]);
+
+  document.getElementById('fpm-title').textContent = user.name + ' — Student Profile';
+  document.getElementById('fpm-body').innerHTML = `
+    <div class="profile-modal-banner">
+      ${avatarHtml}
+      <div>
+        <div class="profile-name">${esc(user.name)}</div>
+        <div class="profile-email">${esc(user.email)}</div>
+        <div style="display:flex;gap:.4rem;margin-top:6px;flex-wrap:wrap">
+          <span class="badge ${roleCls}">${user.role}</span>
+          ${user.semester ? `<span class="badge badge-violet">📚 ${esc(user.semester)}</span>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="profile-detail-list">
+      ${fields.map(([k,v]) => `
+        <div class="profile-detail-row">
+          <span class="profile-detail-key">${k}</span>
+          <span class="profile-detail-val${(!v||v==='—')?' empty-val':''}">${esc(v||'—')}</span>
+        </div>`).join('')}
+    </div>`;
+
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFacProfileModal() {
+  const modal = document.getElementById('fac-profile-modal');
+  if (modal) modal.classList.remove('show');
+  document.body.style.overflow = '';
 }
