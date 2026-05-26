@@ -1,226 +1,728 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About — Student Sphere</title>
   <link rel="icon" type="image/x-icon" href="css/logo.png">
   <link rel="stylesheet" href="css/style.css">
-  <!-- All styles now live in css/style.css — no inline <style> block needed -->
+  <style>
+    /* ── ABOUT PAGE EXTRAS ── */
+    .about-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* College banner */
+    .college-banner {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      background: linear-gradient(135deg, var(--card) 0%, var(--card2) 100%);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .college-logo {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      flex-shrink: 0;
+      border-radius: 8px;
+      background: #fff;
+      padding: 4px;
+    }
+
+    .college-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .college-name {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--white);
+      line-height: 1.3;
+      margin-bottom: .2rem;
+    }
+
+    .college-sub {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    /* Guide card */
+    .guide-card {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      background: var(--card);
+      border: 1px solid var(--accent-glow);
+      border-radius: var(--r);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      box-shadow: 0 0 0 1px var(--accent-glow), var(--shadow-sm);
+    }
+
+    .guide-photo {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--accent);
+      flex-shrink: 0;
+    }
+
+    .guide-label {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: .2rem;
+    }
+
+    .guide-name {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--white);
+      margin-bottom: .15rem;
+    }
+
+    .guide-role {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    /* Team section heading */
+    .team-section-head {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .team-section-head h2 {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 1.6rem;
+      color: var(--white);
+      letter-spacing: -.4px;
+      margin-bottom: .4rem;
+    }
+
+    .team-section-head p {
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    /* Team grid */
+    .team-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Team card */
+    .tc {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+      transition: transform .35s cubic-bezier(.34, 1.56, .64, 1),
+        box-shadow .35s ease,
+        border-color .35s ease;
+      /* entry animation */
+      opacity: 0;
+      transform: translateY(28px);
+      animation: tcFadeUp .55s forwards;
+    }
+
+    .tc:nth-child(1) {
+      animation-delay: .05s;
+    }
+
+    .tc:nth-child(2) {
+      animation-delay: .12s;
+    }
+
+    .tc:nth-child(3) {
+      animation-delay: .19s;
+    }
+
+    .tc:nth-child(4) {
+      animation-delay: .26s;
+    }
+
+    .tc:nth-child(5) {
+      animation-delay: .33s;
+    }
+
+    @keyframes tcFadeUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tc:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 16px 40px rgba(249, 115, 22, .18), var(--shadow);
+      border-color: var(--accent);
+    }
+
+    /* Accent line at top on hover */
+    .tc::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .3s ease;
+    }
+
+    .tc:hover::before {
+      transform: scaleX(1);
+    }
+
+    /* Glow orb behind photo */
+    .tc::after {
+      content: '';
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 120px;
+      background: var(--accent-soft);
+      border-radius: 50%;
+      filter: blur(20px);
+      opacity: 0;
+      transition: opacity .35s;
+      pointer-events: none;
+    }
+
+    .tc:hover::after {
+      opacity: 1;
+    }
+
+    /* Photo */
+    .tc-photo-wrap {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+
+    .tc-photo {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: top center;
+      border: 3px solid var(--border2);
+      transition: border-color .3s;
+      display: block;
+    }
+
+    .tc:hover .tc-photo {
+      border-color: var(--accent);
+    }
+
+    /* Initials avatar fallback */
+    .tc-initials {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #fff;
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--border2);
+      transition: border-color .3s;
+    }
+
+    .tc:hover .tc-initials {
+      border-color: var(--accent);
+    }
+
+    /* Number badge */
+    .tc-num {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--card);
+    }
+
+    .tc-name {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: .98rem;
+      color: var(--white);
+      margin-bottom: .25rem;
+      line-height: 1.25;
+    }
+
+    .tc-role {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-glow);
+      border-radius: 20px;
+      padding: 3px 10px;
+      margin-bottom: .5rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .tc-email {
+      font-size: .75rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .team-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .college-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .guide-card {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .team-cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .about-wrap {
+        padding: 1.5rem 1rem 3rem;
+      }
+    }
+
+    /* ── Highlights + Architecture cards ── */
+    .ab-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 1.75rem;
+    }
+
+    .ab-card-title {
+      font-family: var(--head);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Features grid - 2 col */
+    .ab-feats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .ab-feat {
+      font-size: 0.875rem;
+      color: var(--text);
+      padding: 0.65rem 0;
+      border-bottom: 1px solid var(--border);
+      padding-left: 0.25rem;
+    }
+
+    .ab-feat::before {
+      content: none;
+    }
+
+    .ab-feat:nth-last-child(-n+2) {
+      border-bottom: none;
+    }
+
+    /* Architecture items - horizontal rows */
+    .ab-arch-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .ab-arch-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ab-arch-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .ab-arch-icon {
+      font-size: 1.75rem;
+      flex-shrink: 0;
+      width: 44px;
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .ab-arch-name {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--white);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .ab-arch-desc {
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .ab-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .ab-badge-blue {
+      background: rgba(96, 165, 250, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.25);
+    }
+
+    .ab-badge-violet {
+      background: rgba(192, 132, 252, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(192, 132, 252, 0.25);
+    }
+
+    .ab-badge-green {
+      background: rgba(52, 211, 153, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.25);
+    }
+
+    @media (max-width: 600px) {
+      .ab-feats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .ab-feat:nth-last-child(-n+2) {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .ab-feat:last-child {
+        border-bottom: none;
+      }
+
+      .ab-card {
+        padding: 1.25rem;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<nav class="nav">
-  <a class="nav-brand" href="index.html">
-    <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
-    <span class="nav-brand-name">Student <em>Sphere</em></span>
-  </a>
-  <div class="nav-links">
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <img src="css/logo.png" alt="Student Sphere Logo" class="nav-brand-icon">
+      <span class="nav-brand-name">Student <em>Sphere</em></span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about-dev.html" class="active">About</a>
+    </div>
+    <div class="nav-right">
+      <a href="login.html" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Get Started</a>
+    </div>
+    <button class="hamburger" id="ham-btn" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="nav-drawer" id="nav-drawer">
     <a href="index.html">Home</a>
-    <a href="about-dev.html" class="active">About</a>
-  </div>
-  <div class="nav-right">
-    <!-- Theme toggle injected by initHam() -->
-    <a href="login.html"    class="btn btn-ghost btn-sm">Sign In</a>
-    <a href="register.html" class="btn btn-primary btn-sm">Get Started</a>
-  </div>
-  <button class="hamburger" id="ham-btn" aria-label="Toggle menu" aria-expanded="false">
-    <span></span><span></span><span></span>
-  </button>
-</nav>
-
-<div class="nav-drawer" id="nav-drawer">
-  <a href="index.html">Home</a>
-  <a href="login.html">Sign In</a>
-  <a href="register.html">Get Started</a>
-</div>
-
-<div class="pt-nav">
-  <div class="about-wrap">
-
-    <!-- ── HERO CARD ── -->
-    <div class="about-hero-card">
-      <img src="css/logo.png" alt="Student Sphere Logo" class="about-logo">
-      <h1 style="font-family:var(--head);font-size:2rem;font-weight:800;color:var(--white);letter-spacing:-.5px;margin-bottom:.25rem">
-        Student <span style="color:var(--accent)">Sphere</span>
-      </h1>
-      <div class="about-role">B.Tech Final Year Group Project &nbsp;·&nbsp; 2025–26</div>
-      <p class="about-desc" style="max-width:600px">
-        A full-stack academic management system connecting students, faculty, and administrators.
-        Real-time attendance, marks, assignments, notes &amp; lab reports — backed by MongoDB Atlas,
-        secured with JWT, and deployed live on Netlify &amp; Render.
-      </p>
-
-      <!-- Tech Tags -->
-      <div class="tag-cloud" style="max-width:700px;margin:0 auto 1.5rem">
-        <span class="tag">HTML5</span>
-        <span class="tag">CSS3</span>
-        <span class="tag">Vanilla JS</span>
-        <span class="tag">Node.js</span>
-        <span class="tag">Express.js</span>
-        <span class="tag">MongoDB Atlas</span>
-        <span class="tag">Mongoose</span>
-        <span class="tag">JWT Auth</span>
-        <span class="tag">bcrypt</span>
-        <span class="tag">REST API</span>
-        <span class="tag">Netlify</span>
-        <span class="tag">Render</span>
-      </div>
-
-      <!-- Stats -->
-      <div class="about-stats-row">
-        <div class="stat-box" style="text-align:center">
-          <div class="stat-val">3</div>
-          <div class="stat-lbl">User Roles</div>
-        </div>
-        <div class="stat-box" style="text-align:center">
-          <div class="stat-val">20+</div>
-          <div class="stat-lbl">Source Files</div>
-        </div>
-        <div class="stat-box" style="text-align:center">
-          <div class="stat-val">0</div>
-          <div class="stat-lbl">Frameworks</div>
-        </div>
-        <div class="stat-box" style="text-align:center">
-          <div class="stat-val">5</div>
-          <div class="stat-lbl">Team Members</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── TEAM + HIGHLIGHTS ── -->
-    <div class="about-grid-2">
-
-      <!-- Team -->
-      <div class="about-section-card">
-        <h3>👨‍💻 Meet the Team</h3>
-        <div class="team-member">
-          <div class="team-avatar">SK</div>
-          <div>
-            <div class="team-name">Suman Kumar Singh</div>
-            <div class="team-role">Full Stack Developer</div>
-          </div>
-        </div>
-        <div class="team-member">
-          <div class="team-avatar">AA</div>
-          <div>
-            <div class="team-name">Abhinav Anand</div>
-            <div class="team-role">UI / UX Designer</div>
-          </div>
-        </div>
-        <div class="team-member">
-          <div class="team-avatar">AK</div>
-          <div>
-            <div class="team-name">Aman Kumar Vikarn</div>
-            <div class="team-role">Backend Developer</div>
-          </div>
-        </div>
-        <div class="team-member">
-          <div class="team-avatar">SM</div>
-          <div>
-            <div class="team-name">Sachin Mandal</div>
-            <div class="team-role">Database Management</div>
-          </div>
-        </div>
-        <div class="team-member">
-          <div class="team-avatar">SD</div>
-          <div>
-            <div class="team-name">Suman Das</div>
-            <div class="team-role">Testing &amp; QA</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Highlights -->
-      <div class="about-section-card">
-        <h3>🚀 Project Highlights</h3>
-        <div class="feature-item"><span class="feature-check">✓</span> Role-based auth — Student, Faculty &amp; Admin</div>
-        <div class="feature-item"><span class="feature-check">✓</span> Real MongoDB Atlas cloud database</div>
-        <div class="feature-item"><span class="feature-check">✓</span> JWT secured REST API on Node.js + Express</div>
-        <div class="feature-item"><span class="feature-check">✓</span> Bulk attendance &amp; marks management</div>
-        <div class="feature-item"><span class="feature-check">✓</span> File uploads — notes, assignments, lab reports</div>
-        <div class="feature-item"><span class="feature-check">✓</span> Semester-wise student promotion with undo</div>
-        <div class="feature-item"><span class="feature-check">✓</span> Dark &amp; Light theme toggle</div>
-        <div class="feature-item"><span class="feature-check">✓</span> Fully responsive — mobile to 4K</div>
-        <div class="feature-item"><span class="feature-check">✓</span> Live deployed — Netlify + Render</div>
-      </div>
-
-    </div>
-
-    <!-- ── TECH ARCHITECTURE ── -->
-    <div class="about-section-card" style="margin-bottom:1.25rem">
-      <h3>🏗️ Tech Architecture</h3>
-      <div class="about-grid-3" style="margin:0">
-
-        <div class="arch-card">
-          <span class="arch-icon">🌐</span>
-          <div class="arch-title">Frontend</div>
-          <span class="arch-badge badge-blue">Client Side</span>
-          <div class="arch-desc">
-            <strong>HTML5, CSS3, Vanilla JavaScript</strong><br>
-            No frameworks used. Custom responsive design system with dark/light themes.
-            Deployed on <strong>Netlify CDN</strong>.
-          </div>
-        </div>
-
-        <div class="arch-card">
-          <span class="arch-icon">⚙️</span>
-          <div class="arch-title">Backend</div>
-          <span class="arch-badge badge-violet">Server Side</span>
-          <div class="arch-desc">
-            <strong>Node.js + Express 5 REST API</strong><br>
-            JWT authentication, bcrypt password hashing, role-based access control.
-            Deployed on <strong>Render</strong>.
-          </div>
-        </div>
-
-        <div class="arch-card">
-          <span class="arch-icon">🗄️</span>
-          <div class="arch-title">Database</div>
-          <span class="arch-badge badge-green">Cloud DB</span>
-          <div class="arch-desc">
-            <strong>MongoDB Atlas + Mongoose ODM</strong><br>
-            Cloud-hosted NoSQL database. Direct connection string for
-            reliable ISP compatibility. Stores users, attendance, marks, files.
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ── CTA ── -->
-    <div class="about-cta">
-      <a href="index.html"  class="btn btn-outline">← Back to Home</a>
-      <a href="login.html"  class="btn btn-primary">Sign In →</a>
-    </div>
-
+    <a href="login.html">Sign In</a>
+    <a href="register.html">Get Started</a>
   </div>
 
-  <footer>
-    <p>© 2025 <span>Student Sphere</span> · Designed &amp; Developed by Student Sphere Team</p>
-  </footer>
-</div>
+  <div class="pt-nav">
+    <div class="about-wrap">
 
-<!-- Easter Egg -->
-<div class="egg-overlay" id="egg-overlay">
-  <div class="egg-box">
-    <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
-    <h2>Student <span>Sphere</span></h2>
-    <p>Designed &amp; Developed by</p>
-    <div class="egg-dev">Suman Kumar Singh</div>
-    <button class="btn btn-primary" id="egg-close">Close</button>
+      <!-- ── HERO CARD ── -->
+      <div class="about-hero-card">
+        <img src="css/logo.png" alt="Student Sphere Logo" class="about-logo">
+        <h1
+          style="font-family:var(--head);font-size:2rem;font-weight:800;color:var(--white);letter-spacing:-.5px;margin-bottom:.25rem">
+          Student <span style="color:var(--accent)">Sphere</span>
+        </h1>
+        <div class="about-role">B.Tech Final Year Group Project &nbsp;·&nbsp; 2025–26</div>
+        <p class="about-desc" style="max-width:600px">
+          A full-stack academic management system connecting students, faculty, and administrators.
+          Real-time attendance, marks, assignments, notes &amp; lab reports — backed by MongoDB Atlas,
+          secured with JWT, and deployed live on Netlify &amp; Render.
+        </p>
+        <div class="tag-cloud" style="max-width:700px;margin:0 auto 1.5rem">
+          <span class="tag">HTML5</span><span class="tag">CSS3</span>
+          <span class="tag">Vanilla JS</span><span class="tag">Node.js</span>
+          <span class="tag">Express.js</span><span class="tag">MongoDB Atlas</span>
+          <span class="tag">Mongoose</span><span class="tag">JWT Auth</span>
+          <span class="tag">bcrypt</span><span class="tag">REST API</span>
+          <span class="tag">Netlify</span><span class="tag">Render</span>
+        </div>
+        <div class="about-stats-row">
+          <div class="stat-box" style="text-align:center">
+            <div class="stat-val">3</div>
+            <div class="stat-lbl">User Roles</div>
+          </div>
+          <div class="stat-box" style="text-align:center">
+            <div class="stat-val">20+</div>
+            <div class="stat-lbl">Source Files</div>
+          </div>
+          <div class="stat-box" style="text-align:center">
+            <div class="stat-val">0</div>
+            <div class="stat-lbl">Frameworks</div>
+          </div>
+          <div class="stat-box" style="text-align:center">
+            <div class="stat-val">5</div>
+            <div class="stat-lbl">Team Members</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COLLEGE BANNER ── -->
+      <div class="college-banner">
+        <img src="css/rit-logo.jpg" alt="College Logo" class="college-logo">
+        <div class="college-info">
+          <div class="college-name">Ramgovind Institute of Technology, Koderma</div>
+          <div class="college-sub">Department of Computer Science &amp; Engineering &nbsp;·&nbsp; B.Tech 2022–26</div>
+        </div>
+      </div>
+
+      <!-- ── PROJECT GUIDE ── -->
+      <div class="guide-card">
+        <img src="css/guide-photo.png" alt="Ajay Kumar Dangi" class="guide-photo">
+        <div>
+          <div class="guide-label">Project Guide</div>
+          <div class="guide-name">Mr. Ajay Kumar Dangi</div>
+          <div class="guide-role">H.O.D, Department of Computer Science &amp; Engineering<br>
+            Ramgovind Institute of Technology, Koderma</div>
+        </div>
+      </div>
+
+      <!-- ── TEAM CARDS ── -->
+      <div class="team-section-head">
+        <h2>👨‍💻 Meet the Team</h2>
+        <p>The people who built Student Sphere from scratch</p>
+      </div>
+
+      <div class="team-cards-grid">
+
+        <!-- Suman Kumar Singh — has photo -->
+        <div class="tc">
+          <div class="tc-photo-wrap">
+            <img src="css/sk-photo.png" alt="Suman Kumar Singh" class="tc-photo">
+            <div class="tc-num">1</div>
+          </div>
+          <div class="tc-name">Suman Kumar Singh</div>
+          <div class="tc-role">Full Stack Developer</div>
+          <div class="tc-email">sumankumars301@gmail.com</div>
+        </div>
+
+        <!-- Aman Kumar Vikarn — initials -->
+        <div class="tc">
+          <div class="tc-photo-wrap">
+            <img src="" alt="Aman Kumar Vikarn" class="tc-photo">
+            <div class="tc-num">3</div>
+          </div>
+          <div class="tc-name">Aman Kumar Vikarn</div>
+          <div class="tc-role">Backend Developer</div>
+          <div class="tc-email">amankumarvikarn@gmail.com</div>
+        </div>
+
+        <!-- Abhinav Anand — initials -->
+        <div class="tc">
+          <div class="tc-photo-wrap">
+            <img src="" alt="Abhinav Anand" class="tc-photo">
+            <div class="tc-num">2</div>
+          </div>
+          <div class="tc-name">Abhinav Anand</div>
+          <div class="tc-role">UI / UX Designer</div>
+          <div class="tc-email">abhinavanand@gmail.com</div>
+        </div>
+
+        <!-- Sachin Mandal — initials -->
+        <div class="tc">
+          <div class="tc-photo-wrap">
+            <img src="" alt="Sachin Mandal" class="tc-photo">
+            <div class="tc-num">4</div>
+          </div>
+          <div class="tc-name">Sachin Mandal</div>
+          <div class="tc-role">Database Management</div>
+          <div class="tc-email">sachinmandal@gmail.com</div>
+        </div>
+
+        <!-- Suman Das — initials -->
+        <div class="tc">
+          <div class="tc-photo-wrap">
+            <img src="" alt="Suman Das" class="tc-photo">
+            <div class="tc-num">5</div>
+          </div>
+          <div class="tc-name">Suman Das</div>
+          <div class="tc-role">Testing &amp; QA</div>
+          <div class="tc-email">sumandas@gmail.com</div>
+        </div>
+
+      </div>
+
+      <!-- ── HIGHLIGHTS ── -->
+      <div class="ab-card" style="margin-bottom:1.25rem">
+        <h3 class="ab-card-title">🚀 Project Highlights</h3>
+        <div class="ab-feats-grid">
+          <div class="ab-feat">✓ Role-based auth — Student, Faculty &amp; Admin</div>
+          <div class="ab-feat">✓ Real MongoDB Atlas cloud database</div>
+          <div class="ab-feat">✓ JWT secured REST API on Node.js + Express</div>
+          <div class="ab-feat">✓ Bulk attendance &amp; marks management</div>
+          <div class="ab-feat">✓ File uploads — notes, assignments, lab reports</div>
+          <div class="ab-feat">✓ Semester-wise student promotion with undo</div>
+          <div class="ab-feat">✓ Dark &amp; Light theme toggle</div>
+          <div class="ab-feat">✓ Fully responsive — mobile to 4K</div>
+          <div class="ab-feat">✓ Live deployed — Netlify + Render</div>
+          <div class="ab-feat">✓ Android WebView app (APK available)</div>
+        </div>
+      </div>
+
+      <!-- ── TECH ARCHITECTURE ── -->
+      <div class="ab-card" style="margin-bottom:1.25rem">
+        <h3 class="ab-card-title">🏗️ Tech Architecture</h3>
+        <div class="ab-arch-grid">
+          <div class="ab-arch-item">
+            <div class="ab-arch-icon">🌐</div>
+            <div class="ab-arch-body">
+              <div class="ab-arch-name">Frontend <span class="ab-badge ab-badge-blue">Client Side</span></div>
+              <div class="ab-arch-desc"><strong>HTML5, CSS3, Vanilla JavaScript</strong> — Zero frameworks. Custom
+                design system with dark/light themes. Deployed on <strong>Netlify CDN</strong>.</div>
+            </div>
+          </div>
+          <div class="ab-arch-item">
+            <div class="ab-arch-icon">⚙️</div>
+            <div class="ab-arch-body">
+              <div class="ab-arch-name">Backend <span class="ab-badge ab-badge-violet">Server Side</span></div>
+              <div class="ab-arch-desc"><strong>Node.js + Express 5 REST API</strong> — JWT auth, bcrypt password
+                hashing, role-based access control. Deployed on <strong>Render</strong>.</div>
+            </div>
+          </div>
+          <div class="ab-arch-item">
+            <div class="ab-arch-icon">🗄️</div>
+            <div class="ab-arch-body">
+              <div class="ab-arch-name">Database <span class="ab-badge ab-badge-green">Cloud DB</span></div>
+              <div class="ab-arch-desc"><strong>MongoDB Atlas + Mongoose ODM</strong> — Cloud-hosted NoSQL database.
+                Stores users, attendance, marks, assignments and files.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CTA ── -->
+      <div class="about-cta">
+        <a href="index.html" class="btn btn-outline">← Back to Home</a>
+        <a href="login.html" class="btn btn-primary">Sign In →</a>
+      </div>
+
+    </div>
+
+    <footer>
+      <p>&copy; 2026 <span>Student Sphere</span> &middot; Ramgovind Institute of Technology, Koderma</p>
+    </footer>
   </div>
-</div>
 
-<script src="js/utils.js"></script>
-<script src="js/auth.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    seedAdmin();
-    initHam();
-    initEasterEgg();
-  });
-</script>
+  <!-- Easter Egg -->
+  <div class="egg-overlay" id="egg-overlay">
+    <div class="egg-box">
+      <img src="css/logo.png" alt="Student Sphere Logo" class="egg-icon">
+      <h2>Student <span>Sphere</span></h2>
+      <p>Designed &amp; Developed by</p>
+      <div class="egg-dev">Suman Kumar Singh</div>
+      <button class="btn btn-primary" id="egg-close">Close</button>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      seedAdmin();
+      initHam();
+      initEasterEgg();
+
+      // Intersection Observer for card entrance animation
+      const cards = document.querySelectorAll('.tc');
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.style.animationPlayState = 'running';
+            obs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      cards.forEach(c => {
+        c.style.animationPlayState = 'paused';
+        obs.observe(c);
+      });
+    });
+  </script>
 
 </body>
+
 </html>
